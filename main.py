@@ -14,7 +14,7 @@ import io
 import uuid
 
 # --- 2. 초기 설정 (AI 모델 역할 분담) ---
-load_dotenv()
+# load_dotenv()
 app = FastAPI()
 
 # ★★★★★★★★ 여기를 추가하거나 확인하세요! ★★★★★★★★
