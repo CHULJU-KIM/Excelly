@@ -205,3 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# .gitignore 파일 맨 아래에 추가할 내용
+.env
+venv/
