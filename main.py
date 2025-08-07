@@ -2,6 +2,7 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles  # <-- 이 줄이 추가되거나 확인되어야 합니다.
 from dotenv import load_dotenv
 import os
 import shutil
@@ -15,6 +16,12 @@ import uuid
 # --- 2. 초기 설정 (AI 모델 역할 분담) ---
 load_dotenv()
 app = FastAPI()
+
+# ★★★★★★★★ 여기를 추가하거나 확인하세요! ★★★★★★★★
+# 'static' 이라는 이름의 폴더를 서버의 '/static' 주소와 연결해줍니다.
+# 이렇게 하면 index.html에서 <link href="/static/style.css"> 처럼 파일을 불러올 수 있습니다.
+app.mount("/static", StaticFiles(directory="static"), name="static")
+# ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
 # OpenAI: 정밀한 코드/수식/논리 담당
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -30,9 +37,8 @@ gemini_flash_model = genai.GenerativeModel('gemini-1.5-flash-latest')
 templates = Jinja2Templates(directory="templates")
 chat_sessions = {}
 
-# --- 3. AI 페르소나 및 프롬프트 정의 (이전과 동일) ---
-# PERSONA_PROMPT, DEBUGGING_PERSONA_PROMPT 내용은 이전과 동일하게 유지됩니다.
-# (코드 길이상 생략하지만, 실제 파일에는 전체 내용이 있어야 합니다)
+# --- 3. AI 페르소나 및 프롬프트 정의 ---
+# (코드 길이상 생략) 실제 파일에는 PERSONA_PROMPT와 DEBUGGING_PERSONA_PROMPT 내용이 있어야 합니다.
 PERSONA_PROMPT = """..."""
 DEBUGGING_PERSONA_PROMPT = """..."""
 
@@ -60,19 +66,24 @@ async def handle_ask_request(
     
     # 엑셀 파일 분석
     if file and file.filename:
-        # (이전과 동일한 파일 분석 로직)
-        pass # 여기에 실제 파일 분석 코드를 채워주세요
+        # 이 부분은 주석 처리되어 있으니 실제 코드로 채워야 합니다.
+        # 예시: final_input_text += f"[파일 내용 요약]...\n"
+        pass 
 
     # 이미지 분석 (텍스트로 변환하여 통합)
     if image and image.filename:
         try:
             image_content = await image.read()
             img = Image.open(io.BytesIO(image_content))
+            # 이미지 포맷을 PNG로 통일하여 안정성 확보
             buffered = io.BytesIO()
             img.save(buffered, format="PNG")
+            img_bytes = buffered.getvalue()
             
             # Flash 모델로 이미지 내용만 빠르게 텍스트로 변환
-            response = gemini_flash_model.generate_content(["이 이미지에 있는 모든 텍스트와 상황을 설명해줘.", {"mime_type": "image/png", "data": buffered.getvalue()}])
+            response = gemini_flash_model.generate_content(
+                ["이 이미지에 있는 모든 텍스트와 상황을 설명해줘.", {"mime_type": "image/png", "data": img_bytes}]
+            )
             image_description = response.text
             final_input_text += f"[사용자 첨부 이미지 분석 결과 📸]\n{image_description}\n------------------\n"
         except Exception as e:
@@ -85,7 +96,6 @@ async def handle_ask_request(
         if is_feedback:
             previous_answer = next((msg['content'] for msg in reversed(chat_sessions.get(session_id, [])) if msg['role'] == 'assistant'), "이전 답변을 찾을 수 없습니다.")
             debugging_prompt = f"{DEBUGGING_PERSONA_PROMPT}\n\n--- 이전 해결책 ---\n{previous_answer}\n\n--- 사용자 피드백 ---\n{final_input_text}"
-            # 디버깅은 정확성이 생명이므로 GPT-4 Turbo 사용
             response = openai_client.chat.completions.create(
                 model=OPENAI_MODEL, messages=[{"role": "user", "content": debugging_prompt}]
             )
@@ -97,27 +107,21 @@ async def handle_ask_request(
             is_complex_request = any(k in question.lower() for k in ["복잡한", "배열 수식", "수식 조합", "분석"])
             is_file_attached = file is not None
 
-            # **전략 1: 하이브리드 (파일 분석 + 코드/수식 생성)**
             if is_file_attached and (is_code_request or is_complex_request):
                 context_prompt = f"다음은 사용자의 질문과 업로드한 파일의 정보입니다. 이를 바탕으로, 코드를 작성하거나 복잡한 분석을 하기 위해 필요한 핵심 정보(시트, 컬럼, 데이터 특징 등)만 간결하게 요약해주세요.\n\n{final_input_text}"
                 context_response = gemini_pro_model.generate_content(context_prompt)
                 extracted_context = context_response.text
-                
                 final_prompt_for_openai = f"{PERSONA_PROMPT}\n\n--- AI 요약 정보 ---\n{extracted_context}\n\n--- 원본 질문 ---\n{question}\n\n위 정보를 바탕으로 최고의 답변을 생성해줘."
                 response = openai_client.chat.completions.create(
                     model=OPENAI_MODEL, messages=[{"role": "user", "content": final_prompt_for_openai}]
                 )
                 ai_answer = response.choices[0].message.content + "\n\n---\n*💡 Gemini Pro의 분석과 GPT-4의 정밀함으로 답변을 만들었어요!*"
-            
-            # **전략 2: OpenAI 단독 (정밀 작업)**
             elif is_code_request or is_complex_request:
                 final_prompt = f"{PERSONA_PROMPT}\n\n{final_input_text}"
                 response = openai_client.chat.completions.create(
                     model=OPENAI_MODEL, messages=[{"role": "user", "content": final_prompt}]
                 )
                 ai_answer = response.choices[0].message.content
-
-            # **전략 3: Gemini Pro 단독 (일반 대화, 컨텍스트 기반 질문)**
             else:
                 final_prompt = f"{PERSONA_PROMPT}\n\n{final_input_text}"
                 response = gemini_pro_model.generate_content(final_prompt)
