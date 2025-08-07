@@ -53,8 +53,8 @@
 
 1.  **저장소 복제:**
     ```bash
-    git clone https://github.com/YourUsername/excel-ai-chatbot.git
-    cd excel-ai-chatbot
+    git clone https://github.com/CHULJU-KIM/Excelly.git
+    cd Excelly
     ```
 
 2.  **가상환경 생성 및 활성화:**
