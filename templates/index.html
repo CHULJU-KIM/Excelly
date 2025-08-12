@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 엑셀 해결사 '엑셀리' 🤖</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root { --primary-color: #1a73e8; --bg-light: #f0f2f5; --bg-panel: #e9eef6; --border-color: #dcdcdc; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-light); color: #333; margin: 0; font-size: 15px; overflow: hidden; }
+.main-layout { display: flex; width: 100vw; height: 100vh; }
+
+/* ✨ [업그레이드] History Panel CSS */
+.history-panel {
+    width: 280px;
+    background-color: var(--bg-panel);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s ease;
+    flex-shrink: 0;
+}
+.history-header { padding: 15px; text-align: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+.history-header h2 { margin: 0; font-size: 18px; }
+.history-list { list-style: none; padding: 10px; margin: 0; overflow-y: auto; flex-grow: 1; }
+.history-item { padding: 12px 15px; margin-bottom: 8px; background-color: white; border-radius: 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; border: 1px solid transparent; transition: all 0.2s; }
+.history-item:hover { border-color: var(--primary-color); }
+.history-item.active { border-color: var(--primary-color); background-color: #dbeaff; font-weight: bold; }
+.new-chat-btn { margin: 10px; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; text-align: center; flex-shrink: 0; }
+.new-chat-btn:hover { background-color: #1558b8; }
+.close-history-btn, .open-history-btn { background: none; border: none; font-size: 24px; cursor: pointer; padding: 0 5px; color: #555; }
+
+/* ✨ [신규] Panel 숨김/보임 처리 */
+.open-history-btn { position: fixed; top: 10px; left: 10px; z-index: 1001; background-color: rgba(255,255,255,0.8); border-radius: 50%; width: 40px; height: 40px; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+@media (max-width: 768px) {
+    .history-panel { position: fixed; height: 100%; z-index: 1000; margin-left: -281px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+    .history-panel.visible { margin-left: 0; }
+    .open-history-btn { display: flex; }
+}
+
+.container { flex-grow: 1; height: 100vh; background-color: white; display: flex; flex-direction: column; }
+header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); text-align: center; flex-shrink: 0; }
+h1 { margin: 0; font-size: 24px; color: var(--primary-color); }
+.chatbox { flex-grow: 1; padding: 20px; overflow-y: auto; }
+.message-wrapper { margin-bottom: 20px; display: flex; flex-direction: column; }
+.message { max-width: 90%; padding: 10px 16px; border-radius: 18px; line-height: 1.6; word-wrap: break-word; }
+.user-wrapper { align-items: flex-end; }
+.ai-wrapper { align-items: flex-start; }
+.user { background-color: var(--primary-color); color: white; }
+.user img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
+.ai { background-color: var(--bg-panel); color: #333; }
+.ai pre { position: relative; background-color: #282c34; color: #abb2bf; padding: 1.2em 1em 1em; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
+.copy-button { position: absolute; top: 5px; right: 5px; background-color: #4f5666; color: white; border: none; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; opacity: 0.7; }
+/* ✨ [신규] 시트 선택 UI */
+.sheet-selection { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
+.sheet-btn { background-color: #fff; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px 15px; margin: 5px; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+.sheet-btn:hover { background-color: var(--primary-color); color: #fff; }
+
+.feedback-section { padding: 10px 0 0; text-align: right; }
+.feedback-button { background: none; border: 1px solid #ccc; padding: 5px 12px; border-radius: 15px; cursor: pointer; margin-left: 8px; font-size: 13px; }
+.feedback-button:hover { background-color: var(--bg-light); }
+.input-area { padding: 15px 20px; border-top: 1px solid var(--border-color); background-color: #fff; flex-shrink: 0; }
+.input-form { display: flex; gap: 10px; align-items: center; }
+#userInput { flex-grow: 1; border: 1px solid #ccc; border-radius: 20px; padding: 10px 18px; font-size: 15px; }
+.file-button, .submit-button { background-color: var(--primary-color); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
+.file-button:hover, .submit-button:hover { background-color: #1558b8; }
+#pasted-image-preview { max-width: 100px; max-height: 40px; margin-right: 10px; border-radius: 5px; object-fit: cover; }
+.file-name-display { font-size: 12px; color: #666; margin-right: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+</style>
+</head>
+<body>
+
+<div class="main-layout">
+    <button class="open-history-btn" onclick="toggleHistoryPanel()">☰</button>
+    <div class="history-panel" id="historyPanel">
+        <div class="history-header">
+            <h2>대화 기록 📖</h2>
+            <button class="close-history-btn" onclick="toggleHistoryPanel()">×</button>
+        </div>
+        <button class="new-chat-btn" onclick="startNewChat()">+ 새 대화 시작하기</button>
+        <button class="clear-history-btn" onclick="clearCurrentSession()" style="margin: 0 10px 10px; padding: 8px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">🗑️ 현재 대화 지우기</button>
+        <button class="clear-all-history-btn" onclick="clearAllSessions()" style="margin: 0 10px 10px; padding: 8px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">🗑️ 모든 대화 지우기</button>
+        <ul class="history-list" id="historyList"></ul>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>AI 엑셀 해결사 '엑셀리' 🤖✨</h1>
+            <div id="ai-status" style="font-size: 12px; color: #666; margin-top: 5px;">
+                <span id="status-text">AI 상태 확인 중...</span>
+                <span id="model-info" style="margin-left: 10px;"></span>
+            </div>
+        </header>
+        <div class="chatbox" id="chatbox"></div>
+        <div class="input-area" id="main-input-area">
+            <form class="input-form" id="chatForm" onsubmit="handleFormSubmit(event)">
+                <div id="file-name-display" class="file-name-display"></div>
+                <img id="pasted-image-preview" style="display:none;">
+                <input type="file" id="fileInput" style="display: none;" onchange="handleFileChange(event)" accept=".xlsx, .xls, .csv">
+                <button type="button" class="file-button" onclick="document.getElementById('fileInput').click()" title="파일 첨부">📎</button>
+                <input type="text" id="userInput" placeholder="질문을 입력하거나, 이미지를 붙여넣으세요">
+                <button type="submit" class="submit-button" title="전송">🚀</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatForm = document.getElementById('chatForm');
+    const userInput = document.getElementById('userInput');
+    const fileInput = document.getElementById('fileInput');
+    const chatbox = document.getElementById('chatbox');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyList = document.getElementById('historyList');
+    const imagePreview = document.getElementById('pasted-image-preview');
+    const fileNameDisplay = document.getElementById('file-name-display');
+
+    let currentSessionId = sessionStorage.getItem('excellySessionId');
+    let isWaitingForResponse = false;
+    let pastedImageFile = null;
+    
+    // AI 상태 확인
+    async function checkAIStatus() {
+        try {
+            const response = await fetch('/api/chat/status');
+            const status = await response.json();
+            
+            const statusText = document.getElementById('status-text');
+            const modelInfo = document.getElementById('model-info');
+            
+            if (status.status === 'healthy') {
+                const aiService = status.ai_service;
+                statusText.textContent = '✅ AI 서비스 정상';
+                statusText.style.color = '#28a745';
+                
+                // 사용 가능한 모델 정보 표시
+                const availableModels = [];
+                if (aiService.openai_available) availableModels.push('OpenAI');
+                if (aiService.gemini_available) availableModels.push('Gemini Pro');
+                if (aiService.gemini_flash_available) availableModels.push('Gemini Flash');
+                
+                modelInfo.textContent = `사용 가능: ${availableModels.join(', ')}`;
+                modelInfo.style.color = '#666';
+            } else {
+                statusText.textContent = '❌ AI 서비스 오류';
+                statusText.style.color = '#dc3545';
+                modelInfo.textContent = '';
+            }
+        } catch (error) {
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = '⚠️ AI 서비스 연결 실패';
+            statusText.style.color = '#ffc107';
+        }
+    }
+
+    function toggleHistoryPanel() {
+        historyPanel.classList.toggle('visible');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!currentSessionId) {
+            currentSessionId = 'session_' + Date.now() + Math.random();
+            sessionStorage.setItem('excellySessionId', currentSessionId);
+        }
+        await checkAIStatus();
+        await loadSessions();
+        await loadCurrentChat();
+    });
+
+    async function loadSessions() {
+        try {
+            const response = await fetch('/api/chat/sessions');
+            if (!response.ok) return;
+            const sessions = await response.json();
+            historyList.innerHTML = '';
+            
+            // 세션이 없으면 빈 상태로 유지
+            if (!sessions || sessions.length === 0) {
+                return;
+            }
+            
+            sessions.forEach(session => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                let firstMessage = (session.first_message || '새로운 대화').replace(/^질문: /, '');
+                li.textContent = firstMessage;
+                li.title = firstMessage;
+                li.dataset.sessionId = session.session_id;
+                if (session.session_id === currentSessionId) {
+                    li.classList.add('active');
+                }
+                li.onclick = () => selectSession(session.session_id);
+                historyList.appendChild(li);
+            });
+        } catch (error) {
+            console.error("세션 목록 로딩 실패:", error);
+        }
+    }
+
+    async function selectSession(sessionId) {
+        currentSessionId = sessionId;
+        sessionStorage.setItem('excellySessionId', sessionId);
+        sessionStorage.removeItem('excellyConversationContext'); // Clear local context
+        
+        // Update active state in history list
+        document.querySelectorAll('.history-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        const activeItem = document.querySelector(`[data-session-id="${sessionId}"]`);
+        if (activeItem) {
+            activeItem.classList.add('active');
+        }
+        
+        // Load the selected session's chat history
+        await loadCurrentChat();
+    }
+    
+    function startNewChat() {
+        // Generate new session ID
+        currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('excellySessionId', currentSessionId);
+        sessionStorage.removeItem('excellyConversationContext');
+        
+        // Clear chat display and add welcome message
+        chatbox.innerHTML = '';
+        addWelcomeMessage();
+        
+        // Update active state in history list
+        document.querySelectorAll('.history-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Refresh session list to include new session
+        loadSessions();
+    }
+
+    async function clearCurrentSession() {
+        if (!currentSessionId) {
+            alert('지울 대화가 없습니다.');
+            return;
+        }
+        
+        if (!confirm('현재 대화 기록을 모두 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/chat/sessions/${currentSessionId}/messages`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Clear chat display
+                chatbox.innerHTML = '';
+                sessionStorage.removeItem('excellyConversationContext');
+                
+                // Add welcome message
+                addWelcomeMessage();
+                
+                // Refresh session list
+                await loadSessions();
+                
+                alert('대화 기록이 지워졌습니다.');
+            } else {
+                const errorData = await response.json();
+                alert(`대화 기록 삭제에 실패했습니다: ${errorData.detail || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('대화 기록 삭제 오류:', error);
+            alert('대화 기록 삭제 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function clearAllSessions() {
+        if (!confirm('모든 대화 기록을 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/chat/sessions/all', {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Clear chat display
+                chatbox.innerHTML = '';
+                sessionStorage.removeItem('excellySessionId');
+                sessionStorage.removeItem('excellyConversationContext');
+                currentSessionId = null;
+                
+                // Clear session list completely
+                historyList.innerHTML = '';
+                
+                // Add welcome message
+                addWelcomeMessage();
+                
+                alert('모든 대화 기록이 지워졌습니다.');
+            } else {
+                const errorData = await response.json();
+                alert(`대화 기록 삭제에 실패했습니다: ${errorData.detail || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('대화 기록 삭제 오류:', error);
+            alert('대화 기록 삭제 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function loadCurrentChat() {
+        chatbox.innerHTML = '';
+        if (currentSessionId) {
+            const loadingMessage = addMessage('ai', '이전 대화 기록을 불러오는 중... 🧐');
+            try {
+                const response = await fetch(`/api/chat/history/${currentSessionId}`);
+                if(loadingMessage) loadingMessage.remove();
+                if (response.ok) {
+                    const data = await response.json();
+                    const history = data.messages || data; // Backward compatibility
+                    const conversationContext = data.conversation_context;
+                    
+                    let lastMessageWrapper = null;
+                    history.forEach(msg => {
+                        let content = msg.content;
+                        if (msg.role === 'user' && content.startsWith('질문: ')) {
+                            content = content.substring(4).trim();
+                        }
+                        lastMessageWrapper = addMessage(msg.role, content, msg.role === 'ai');
+                    });
+                    if(lastMessageWrapper && history.length > 0 && history[history.length-1].role === 'ai'){
+                         addFeedbackUI(lastMessageWrapper);
+                    }
+                    
+                    // Store conversation context for continuity
+                    if (conversationContext) {
+                        sessionStorage.setItem('excellyConversationContext', JSON.stringify(conversationContext));
+                    }
+                    
+                    if (history.length > 0) {
+                        addMessage('ai', '안녕하세요! 이전 대화에 이어서 계속할까요? 😉');
+                    } else {
+                        addWelcomeMessage();
+                    }
+                } else {
+                    addWelcomeMessage();
+                }
+            } catch (error) {
+                if(loadingMessage) loadingMessage.remove();
+                addWelcomeMessage();
+            }
+        } else {
+            addWelcomeMessage();
+        }
+    }
+    
+    function addWelcomeMessage() {
+        addMessage('ai', '안녕하세요! 엑셀에 관한 것이라면 무엇이든 물어보세요. 함수, VBA, 피벗 테이블... 전부 환영입니다! 😉 파일을 첨부하거나, 오류 화면을 복사해서 붙여넣어 보세요!');
+    }
+
+    function addMessage(sender, content, isHtml = false, imageUrl = null) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${sender}-wrapper`;
+        const message = document.createElement('div');
+        message.className = `message ${sender}`;
+        if (isHtml) {
+            message.innerHTML = marked.parse(content || '');
+        } else {
+            message.textContent = content;
+        }
+        if (imageUrl) {
+            const imgElement = document.createElement('img');
+            imgElement.src = imageUrl;
+            message.appendChild(imgElement);
+        }
+        wrapper.appendChild(message);
+        chatbox.appendChild(wrapper);
+        chatbox.scrollTop = chatbox.scrollHeight;
+        if (isHtml && sender === 'ai') {
+            message.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+                const pre = block.parentElement;
+                if (pre.querySelector('.copy-button')) return;
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-button';
+                copyButton.textContent = 'Copy';
+                copyButton.onclick = () => {
+                    navigator.clipboard.writeText(block.textContent).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
+                    });
+                };
+                pre.appendChild(copyButton);
+            });
+        }
+        return wrapper;
+    }
+
+    async function handleFileChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        addMessage('user', `(파일 첨부: ${file.name})`);
+        const loadingWrapper = addMessage('ai', '파일을 분석하여 시트 목록을 가져오는 중... 🧐');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('session_id', currentSessionId);
+
+        try {
+            const response = await fetch('/api/chat/analyze-sheets', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (response.ok) {
+                loadingWrapper.remove();
+                displaySheetSelection(data.sheets);
+            } else {
+                throw new Error(data.detail || '시트 분석에 실패했습니다.');
+            }
+        } catch (error) {
+            if(loadingWrapper) loadingWrapper.remove();
+            addMessage('ai', `오류: ${error.message}`);
+        }
+    }
+
+    function displaySheetSelection(sheets) {
+        const wrapper = addMessage('ai', '어떤 시트를 분석해드릴까요?');
+        const selectionDiv = document.createElement('div');
+        selectionDiv.className = 'sheet-selection';
+
+        sheets.forEach(sheet => {
+            const btn = document.createElement('button');
+            btn.className = 'sheet-btn';
+            btn.textContent = sheet;
+            btn.onclick = () => sendQuestionWithSheet(sheet);
+            selectionDiv.appendChild(btn);
+        });
+        
+        if (sheets.length > 1) {
+            const allBtn = document.createElement('button');
+            allBtn.className = 'sheet-btn';
+            allBtn.textContent = '모든 시트';
+            allBtn.onclick = () => sendQuestionWithSheet('all_sheets');
+            selectionDiv.appendChild(allBtn);
+        }
+        wrapper.querySelector('.message').appendChild(selectionDiv);
+    }
+    
+    async function handleFormSubmit(event) {
+        event.preventDefault();
+        if (fileInput.files.length > 0) {
+             addMessage('ai', '☝️ 먼저 위에서 분석할 시트를 선택해주세요!');
+             return;
+        }
+        await sendQuestionWithSheet(null);
+    }
+
+    async function sendQuestionWithSheet(selectedSheet) {
+        if (isWaitingForResponse) return;
+        const question = userInput.value.trim();
+        if (question === '' && !pastedImageFile && !selectedSheet) return;
+
+        const sheetSelectionUI = document.querySelector('.sheet-selection');
+        if (sheetSelectionUI) sheetSelectionUI.parentElement.remove();
+        
+        if (!selectedSheet) addMessage('user', question);
+
+        const formData = new FormData();
+        formData.append('question', question);
+        formData.append('session_id', currentSessionId);
+        if (selectedSheet) formData.append('selected_sheet', selectedSheet);
+        if (pastedImageFile) formData.append('image', pastedImageFile, 'pasted_image.png');
+        
+        await sendFormData(formData);
+    }
+
+    async function sendFormData(formData) {
+        isWaitingForResponse = true;
+        const loadingWrapper = addMessage('ai', '🤖 생각 중...');
+        try {
+            const response = await fetch('/api/chat/ask', { method: 'POST', body: formData });
+            if(loadingWrapper) loadingWrapper.remove();
+            const data = await response.json();
+            if (response.ok) {
+                const aiWrapper = addMessage('ai', data.answer, true);
+                
+                // Handle different response types
+                if (data.response_type === 'clarification') {
+                    // Add clarification-specific UI
+                    addClarificationUI(aiWrapper, data.conversation_state);
+                } else if (data.response_type === 'solution') {
+                    // Add feedback UI for solutions
+                    addFeedbackUI(aiWrapper);
+                } else {
+                    // Normal response
+                    addFeedbackUI(aiWrapper);
+                }
+                
+                // Update input placeholder based on conversation state
+                updateInputPlaceholder(data.conversation_state);
+                
+            } else {
+                throw new Error(data.detail || '알 수 없는 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            if(loadingWrapper) loadingWrapper.remove();
+            addMessage('ai', `오류 발생: ${error.message}`);
+        } finally {
+            isWaitingForResponse = false;
+            resetInput();
+        }
+    }
+    
+    function addClarificationUI(parentWrapper, conversationState) {
+        if (parentWrapper.querySelector('.clarification-section')) return;
+        
+        const clarificationSection = document.createElement('div');
+        clarificationSection.className = 'clarification-section';
+        clarificationSection.style.padding = '10px 0';
+        clarificationSection.style.borderTop = '1px solid #eee';
+        clarificationSection.style.marginTop = '10px';
+        
+        const statusText = document.createElement('div');
+        statusText.style.fontSize = '12px';
+        statusText.style.color = '#666';
+        statusText.style.marginBottom = '5px';
+        statusText.textContent = '💡 명확화 진행 중... 질문에 답변해주세요!';
+        
+        clarificationSection.appendChild(statusText);
+        parentWrapper.appendChild(clarificationSection);
+    }
+    
+    function updateInputPlaceholder(conversationState) {
+        const userInput = document.getElementById('userInput');
+        if (conversationState === 'clarifying') {
+            userInput.placeholder = '질문에 답변해주세요...';
+        } else if (conversationState === 'planning') {
+            userInput.placeholder = '계획에 동의하시면 "좋아요" 또는 "네"라고 답해주세요...';
+        } else {
+            userInput.placeholder = '질문을 입력하거나, 이미지를 붙여넣으세요';
+        }
+    }
+
+    function resetInput() {
+        userInput.value = '';
+        fileInput.value = '';
+        pastedImageFile = null;
+        imagePreview.src = '';
+        imagePreview.style.display = 'none';
+        fileNameDisplay.textContent = '';
+        userInput.placeholder = '질문을 입력하거나, 이미지를 붙여넣으세요';
+    }
+
+    document.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || window.clipboardData).items;
+        for (const item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                pastedImageFile = item.getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.src = event.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(pastedImageFile);
+                fileInput.value = '';
+                fileNameDisplay.textContent = '';
+                userInput.placeholder = '이미지에 대한 질문을 입력하세요...';
+                e.preventDefault();
+                return;
+            }
+        }
+    });
+
+    function addFeedbackUI(parentWrapper) {
+        if (parentWrapper.querySelector('.feedback-section')) return;
+        const feedbackSection = document.createElement('div');
+        feedbackSection.className = 'feedback-section';
+        feedbackSection.innerHTML = `<button class="feedback-button" onclick="handleFeedback(true, this)">👍 해결!</button> <button class="feedback-button" onclick="handleFeedback(false, this)">👎 문제있음</button>`;
+        parentWrapper.appendChild(feedbackSection);
+    }
+
+    function handleFeedback(isSolved, buttonElement) {
+        const feedbackSection = buttonElement.parentElement;
+        if (isSolved) {
+            feedbackSection.innerHTML = "도움이 되어 다행입니다! 😊";
+            return;
+        }
+        feedbackSection.innerHTML = '';
+        const feedbackForm = document.createElement('form');
+        feedbackForm.className = 'input-form';
+        feedbackForm.style.padding = '10px 0';
+        feedbackForm.innerHTML = `<img id="feedback-image-preview" style="max-width:100px; max-height:40px; margin-right:10px; border-radius:5px; display:none;"><input type="text" placeholder="문제 상황을 설명하거나, 이미지를 붙여넣으세요" style="flex-grow:1; border-radius:20px; padding:10px 18px; border:1px solid #ccc;"><button type="submit" class="submit-button">🚀</button>`;
+        feedbackSection.appendChild(feedbackForm);
+
+        let feedbackImageFile = null;
+        const feedbackInput = feedbackForm.querySelector('input');
+        const feedbackPreview = feedbackForm.querySelector('#feedback-image-preview');
+
+        feedbackForm.addEventListener('paste', (e) => {
+             const items = (e.clipboardData || window.clipboardData).items;
+             for (const item of items) {
+                 if (item.type.indexOf('image') !== -1) {
+                     feedbackImageFile = item.getAsFile();
+                     const reader = new FileReader();
+                     reader.onload = (event) => { feedbackPreview.src = event.target.result; feedbackPreview.style.display = 'block'; };
+                     reader.readAsDataURL(feedbackImageFile);
+                     e.preventDefault();
+                     return;
+                 }
+             }
+        });
+        
+        feedbackForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isWaitingForResponse) return;
+            const feedbackText = feedbackInput.value.trim();
+            if (!feedbackText && !feedbackImageFile) return;
+
+            feedbackSection.remove();
+            let feedbackUserMessage = `(피드백) ${feedbackText}`;
+            if (feedbackImageFile) {
+                feedbackUserMessage += ' (이미지 첨부)';
+            }
+            addMessage('user', feedbackUserMessage);
+            
+            const formData = new FormData();
+            formData.append('question', feedbackText);
+            formData.append('session_id', currentSessionId);
+            formData.append('is_feedback', true);
+            if (feedbackImageFile) formData.append('image', feedbackImageFile, 'pasted_feedback_image.png');
+
+            sendFormData(formData);
+        });
+    }
+</script>
+</body>
+</html>

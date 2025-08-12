@@ -1,0 +1,10 @@
+# requirements.txt
+fastapi
+uvicorn
+python-dotenv
+openai
+google-generativeai
+pandas
+Pillow
+python-multipart
+Jinja2
