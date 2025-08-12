@@ -9,32 +9,161 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-:root { --primary-color: #1a73e8; --bg-light: #f0f2f5; --bg-panel: #e9eef6; --border-color: #dcdcdc; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-light); color: #333; margin: 0; font-size: 15px; overflow: hidden; }
+:root { 
+    --primary-color: #1a73e8; 
+    --secondary-color: #34a853;
+    --accent-color: #ea4335;
+    --bg-light: #f0f2f5; 
+    --bg-panel: #e9eef6; 
+    --border-color: #dcdcdc;
+    --gradient-primary: linear-gradient(135deg, #1a73e8 0%, #34a853 100%);
+    --gradient-secondary: linear-gradient(135deg, #4285f4 0%, #ea4335 100%);
+    --shadow-soft: 0 4px 20px rgba(26, 115, 232, 0.15);
+    --shadow-medium: 0 8px 30px rgba(26, 115, 232, 0.2);
+}
+
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background: linear-gradient(135deg, #f0f2f5 0%, #e9eef6 100%);
+    color: #333; 
+    margin: 0; 
+    font-size: 15px; 
+    overflow: hidden; 
+}
+
 .main-layout { display: flex; width: 100vw; height: 100vh; }
 
-/* ✨ [업그레이드] History Panel CSS */
+/* ✨ [업그레이드] History Panel CSS with Logo */
 .history-panel {
     width: 280px;
-    background-color: var(--bg-panel);
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     transition: margin-left 0.3s ease;
     flex-shrink: 0;
+    box-shadow: var(--shadow-soft);
 }
-.history-header { padding: 15px; text-align: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
-.history-header h2 { margin: 0; font-size: 18px; }
+
+.history-header { 
+    padding: 20px 15px; 
+    text-align: center; 
+    border-bottom: 1px solid var(--border-color); 
+    flex-shrink: 0; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    background: var(--gradient-primary);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.history-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(180deg); }
+}
+
+.history-header h2 { 
+    margin: 0; 
+    font-size: 18px; 
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 .history-list { list-style: none; padding: 10px; margin: 0; overflow-y: auto; flex-grow: 1; }
-.history-item { padding: 12px 15px; margin-bottom: 8px; background-color: white; border-radius: 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; border: 1px solid transparent; transition: all 0.2s; }
-.history-item:hover { border-color: var(--primary-color); }
-.history-item.active { border-color: var(--primary-color); background-color: #dbeaff; font-weight: bold; }
-.new-chat-btn { margin: 10px; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; text-align: center; flex-shrink: 0; }
-.new-chat-btn:hover { background-color: #1558b8; }
-.close-history-btn, .open-history-btn { background: none; border: none; font-size: 24px; cursor: pointer; padding: 0 5px; color: #555; }
+.history-item { 
+    padding: 12px 15px; 
+    margin-bottom: 8px; 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 12px; 
+    cursor: pointer; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    font-size: 14px; 
+    border: 2px solid transparent; 
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.history-item:hover { 
+    border-color: var(--primary-color); 
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.history-item.active { 
+    border-color: var(--primary-color); 
+    background: linear-gradient(135deg, #dbeaff 0%, #e3f2fd 100%);
+    font-weight: bold; 
+    box-shadow: var(--shadow-medium);
+}
+
+.new-chat-btn { 
+    margin: 10px; 
+    padding: 15px; 
+    background: var(--gradient-primary);
+    color: white; 
+    border: none; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    font-size: 15px; 
+    text-align: center; 
+    flex-shrink: 0;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-soft);
+}
+
+.new-chat-btn:hover { 
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.close-history-btn, .open-history-btn { 
+    background: none; 
+    border: none; 
+    font-size: 24px; 
+    cursor: pointer; 
+    padding: 0 5px; 
+    color: white; 
+    transition: all 0.3s ease;
+}
+
+.close-history-btn:hover, .open-history-btn:hover {
+    transform: scale(1.1);
+}
 
 /* ✨ [신규] Panel 숨김/보임 처리 */
-.open-history-btn { position: fixed; top: 10px; left: 10px; z-index: 1001; background-color: rgba(255,255,255,0.8); border-radius: 50%; width: 40px; height: 40px; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+.open-history-btn { 
+    position: fixed; 
+    top: 10px; 
+    left: 10px; 
+    z-index: 1001; 
+    background: var(--gradient-primary);
+    border-radius: 50%; 
+    width: 50px; 
+    height: 50px; 
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: var(--shadow-medium);
+    color: white;
+    font-size: 20px;
+}
+
 @media (max-width: 768px) {
     .history-panel { position: fixed; height: 100%; z-index: 1000; margin-left: -281px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
     .history-panel.visible { margin-left: 0; }
@@ -42,33 +171,307 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 }
 
 .container { flex-grow: 1; height: 100vh; background-color: white; display: flex; flex-direction: column; }
-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); text-align: center; flex-shrink: 0; }
-h1 { margin: 0; font-size: 24px; color: var(--primary-color); }
-.chatbox { flex-grow: 1; padding: 20px; overflow-y: auto; }
+
+/* ✨ [업그레이드] Header with 3D Robot Logo */
+header { 
+    padding: 20px; 
+    border-bottom: 1px solid var(--border-color); 
+    text-align: center; 
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><defs><linearGradient id="robotGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%231a73e8;stop-opacity:0.1"/><stop offset="100%" style="stop-color:%2334a853;stop-opacity:0.1"/></linearGradient></defs><rect x="20" y="30" width="40" height="50" rx="8" fill="url(%23robotGradient)"/><circle cx="30" cy="40" r="3" fill="%231a73e8"/><circle cx="50" cy="40" r="3" fill="%231a73e8"/><path d="M 35 50 Q 40 55 45 50" stroke="%2334a853" stroke-width="2" fill="none"/></text x="70" y="45" font-family="Arial" font-size="16" fill="%231a73e8" font-weight="bold">Excelly</text></svg>');
+    opacity: 0.1;
+    animation: robotFloat 4s ease-in-out infinite;
+}
+
+@keyframes robotFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+.header-content {
+    position: relative;
+    z-index: 2;
+}
+
+h1 { 
+    margin: 0; 
+    font-size: 28px; 
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+h1::after {
+    content: '✨';
+    position: absolute;
+    right: -30px;
+    top: 0;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
+}
+
+.chatbox { 
+    flex-grow: 1; 
+    padding: 20px; 
+    overflow-y: auto;
+    background: linear-gradient(135deg, #fafbfc 0%, #f0f2f5 100%);
+    position: relative;
+}
+
+.chatbox::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="8" fill="none" stroke="%231a73e8" stroke-width="1" opacity="0.1"/><circle cx="80" cy="40" r="6" fill="none" stroke="%2334a853" stroke-width="1" opacity="0.1"/><circle cx="40" cy="80" r="10" fill="none" stroke="%23ea4335" stroke-width="1" opacity="0.1"/><path d="M 15 25 Q 25 15 35 25" stroke="%231a73e8" stroke-width="1" fill="none" opacity="0.2"/><path d="M 75 35 Q 85 25 95 35" stroke="%2334a853" stroke-width="1" fill="none" opacity="0.2"/></svg>');
+    opacity: 0.3;
+    pointer-events: none;
+}
+
 .message-wrapper { margin-bottom: 20px; display: flex; flex-direction: column; }
-.message { max-width: 90%; padding: 10px 16px; border-radius: 18px; line-height: 1.6; word-wrap: break-word; }
+.message { 
+    max-width: 90%; 
+    padding: 15px 20px; 
+    border-radius: 20px; 
+    line-height: 1.6; 
+    word-wrap: break-word;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
 .user-wrapper { align-items: flex-end; }
 .ai-wrapper { align-items: flex-start; }
-.user { background-color: var(--primary-color); color: white; }
+
+.user { 
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: var(--shadow-soft);
+}
+
+.user::before {
+    content: '💬';
+    position: absolute;
+    left: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    opacity: 0.7;
+}
+
 .user img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
-.ai { background-color: var(--bg-panel); color: #333; }
-.ai pre { position: relative; background-color: #282c34; color: #abb2bf; padding: 1.2em 1em 1em; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
-.copy-button { position: absolute; top: 5px; right: 5px; background-color: #4f5666; color: white; border: none; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; opacity: 0.7; }
+
+.ai { 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    color: #333;
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-soft);
+}
+
+.ai::before {
+    content: '🤖';
+    position: absolute;
+    left: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    opacity: 0.7;
+}
+
+.ai pre { 
+    position: relative; 
+    background-color: #282c34; 
+    color: #abb2bf; 
+    padding: 1.2em 1em 1em; 
+    border-radius: 12px; 
+    overflow-x: auto; 
+    margin: 1em 0;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.copy-button { 
+    position: absolute; 
+    top: 5px; 
+    right: 5px; 
+    background: var(--gradient-secondary);
+    color: white; 
+    border: none; 
+    padding: 6px 12px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 12px; 
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.copy-button:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
 /* ✨ [신규] 시트 선택 UI */
 .sheet-selection { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
-.sheet-btn { background-color: #fff; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px 15px; margin: 5px; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
-.sheet-btn:hover { background-color: var(--primary-color); color: #fff; }
+.sheet-btn { 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid var(--primary-color); 
+    color: var(--primary-color); 
+    padding: 8px 15px; 
+    margin: 5px; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.sheet-btn:hover { 
+    background: var(--gradient-primary);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
 
 .feedback-section { padding: 10px 0 0; text-align: right; }
-.feedback-button { background: none; border: 1px solid #ccc; padding: 5px 12px; border-radius: 15px; cursor: pointer; margin-left: 8px; font-size: 13px; }
-.feedback-button:hover { background-color: var(--bg-light); }
-.input-area { padding: 15px 20px; border-top: 1px solid var(--border-color); background-color: #fff; flex-shrink: 0; }
-.input-form { display: flex; gap: 10px; align-items: center; }
-#userInput { flex-grow: 1; border: 1px solid #ccc; border-radius: 20px; padding: 10px 18px; font-size: 15px; }
-.file-button, .submit-button { background-color: var(--primary-color); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
-.file-button:hover, .submit-button:hover { background-color: #1558b8; }
-#pasted-image-preview { max-width: 100px; max-height: 40px; margin-right: 10px; border-radius: 5px; object-fit: cover; }
+.feedback-button { 
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #ccc; 
+    padding: 8px 15px; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    margin-left: 8px; 
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+
+.feedback-button:hover { 
+    background: var(--gradient-secondary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+}
+
+.input-area { 
+    padding: 20px; 
+    border-top: 1px solid var(--border-color); 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    flex-shrink: 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+}
+
+.input-form { display: flex; gap: 15px; align-items: center; }
+#userInput { 
+    flex-grow: 1; 
+    border: 2px solid var(--border-color); 
+    border-radius: 25px; 
+    padding: 15px 20px; 
+    font-size: 15px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+#userInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+.file-button, .submit-button { 
+    background: var(--gradient-primary);
+    color: white; 
+    border: none; 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    font-size: 20px; 
+    flex-shrink: 0; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-soft);
+}
+
+.file-button:hover, .submit-button:hover { 
+    transform: scale(1.1);
+    box-shadow: var(--shadow-medium);
+}
+
+#pasted-image-preview { max-width: 100px; max-height: 40px; margin-right: 10px; border-radius: 8px; object-fit: cover; }
 .file-name-display { font-size: 12px; color: #666; margin-right: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+
+/* ✨ [신규] 로딩 애니메이션 */
+.loading-dots {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 20px;
+}
+
+.loading-dots div {
+    position: absolute;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.loading-dots div:nth-child(1) {
+    left: 8px;
+    animation: loading1 0.6s infinite;
+}
+
+.loading-dots div:nth-child(2) {
+    left: 8px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(3) {
+    left: 32px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(4) {
+    left: 56px;
+    animation: loading3 0.6s infinite;
+}
+
+@keyframes loading1 {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+}
+
+@keyframes loading3 {
+    0% { transform: scale(1); }
+    100% { transform: scale(0); }
+}
+
+@keyframes loading2 {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(24px, 0); }
+}
 </style>
 </head>
 <body>
@@ -77,21 +480,23 @@ h1 { margin: 0; font-size: 24px; color: var(--primary-color); }
     <button class="open-history-btn" onclick="toggleHistoryPanel()">☰</button>
     <div class="history-panel" id="historyPanel">
         <div class="history-header">
-            <h2>대화 기록 📖</h2>
+            <h2>💬 대화 기록</h2>
             <button class="close-history-btn" onclick="toggleHistoryPanel()">×</button>
         </div>
-        <button class="new-chat-btn" onclick="startNewChat()">+ 새 대화 시작하기</button>
-        <button class="clear-history-btn" onclick="clearCurrentSession()" style="margin: 0 10px 10px; padding: 8px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">🗑️ 현재 대화 지우기</button>
-        <button class="clear-all-history-btn" onclick="clearAllSessions()" style="margin: 0 10px 10px; padding: 8px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">🗑️ 모든 대화 지우기</button>
+        <button class="new-chat-btn" onclick="startNewChat()">🚀 새 대화 시작하기</button>
+        <button class="clear-history-btn" onclick="clearCurrentSession()" style="margin: 0 10px 10px; padding: 10px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.3s ease;">🗑️ 현재 대화 지우기</button>
+        <button class="clear-all-history-btn" onclick="clearAllSessions()" style="margin: 0 10px 10px; padding: 10px; background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.3s ease;">🗑️ 모든 대화 지우기</button>
         <ul class="history-list" id="historyList"></ul>
     </div>
 
     <div class="container">
         <header>
-            <h1>AI 엑셀 해결사 '엑셀리' 🤖✨</h1>
-            <div id="ai-status" style="font-size: 12px; color: #666; margin-top: 5px;">
-                <span id="status-text">AI 상태 확인 중...</span>
-                <span id="model-info" style="margin-left: 10px;"></span>
+            <div class="header-content">
+                <h1>AI 엑셀 해결사 '엑셀리'</h1>
+                <div id="ai-status" style="font-size: 12px; color: #666; margin-top: 5px;">
+                    <span id="status-text">AI 상태 확인 중...</span>
+                    <span id="model-info" style="margin-left: 10px;"></span>
+                </div>
             </div>
         </header>
         <div class="chatbox" id="chatbox"></div>
@@ -475,6 +880,11 @@ h1 { margin: 0; font-size: 24px; color: var(--primary-color); }
 
     async function sendFormData(formData) {
         isWaitingForResponse = true;
+        const submitButton = document.querySelector('.submit-button');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<div class="loading-dots"><div></div><div></div><div></div><div></div></div>';
+        submitButton.disabled = true;
+        
         const loadingWrapper = addMessage('ai', '🤖 생각 중...');
         try {
             const response = await fetch('/api/chat/ask', { method: 'POST', body: formData });
@@ -506,6 +916,8 @@ h1 { margin: 0; font-size: 24px; color: var(--primary-color); }
             addMessage('ai', `오류 발생: ${error.message}`);
         } finally {
             isWaitingForResponse = false;
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
             resetInput();
         }
     }
