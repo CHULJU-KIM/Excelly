@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
 :root { 
     --primary-color: #1a73e8; 
@@ -416,6 +417,18 @@ h1::after {
     transition: all 0.3s ease;
 }
 
+/* Excel Demo (AI-rendered) */
+.excel-demo { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin: 10px 0; }
+.excel-demo h4 { margin: 6px 0 10px; font-size: 15px; }
+.excel-demo .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.excel-demo .demo-section { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
+.excel-demo table { border-collapse: collapse; width: 100%; font-size: 13px; background: #fff; }
+.excel-demo table th, .excel-demo table td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; }
+.excel-demo .cell-highlight { background: #fff3cd; box-shadow: inset 0 0 0 2px #ffe69c; }
+.excel-demo .steps { margin-top: 8px; }
+.excel-demo .step { padding: 8px; border-left: 3px solid var(--primary-color); background: #f8fafc; border-radius: 6px; margin-bottom: 8px; }
+.excel-demo .formula { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+
 .copy-button:hover {
     opacity: 1;
     transform: scale(1.05);
@@ -590,6 +603,12 @@ h1::after {
                     <img src="/static/images/excelly-logo.jpg" alt="Excelly Logo" class="main-logo">
                     <h1>AI 엑셀 해결사 'Excelly'</h1>
                 </div>
+                    <div style="margin-top:8px; display:flex; gap:10px; justify-content:center; align-items:center;">
+                        <label style="font-size:12px; color:#555; display:flex; align-items:center; gap:6px;">
+                            <input type="checkbox" id="conciseToggle" /> 간단 답변 모드
+                        </label>
+                    <a href="/guide" target="_blank" style="font-size:12px; color:#1a73e8; text-decoration:none; border:1px solid #d0d7de; padding:6px 10px; border-radius:8px; background:#fff;">사용 가이드 열기</a>
+                    </div>
                 <div id="ai-status" style="font-size: 12px; color: #666; margin-top: 5px;">
                     <span id="status-text">AI 상태 확인 중...</span>
                     <span id="model-info" style="margin-left: 10px;"></span>
@@ -619,6 +638,7 @@ h1::after {
     const historyList = document.getElementById('historyList');
     const imagePreview = document.getElementById('pasted-image-preview');
     const fileNameDisplay = document.getElementById('file-name-display');
+    const conciseToggle = document.getElementById('conciseToggle');
 
     let currentSessionId = sessionStorage.getItem('excellySessionId');
     let isWaitingForResponse = false;
@@ -867,6 +887,8 @@ h1::after {
         message.className = `message ${sender}`;
         if (isHtml) {
             message.innerHTML = marked.parse(content || '');
+            renderMermaid(message);
+            renderExcelDemo(message);
         } else {
             message.textContent = content;
         }
@@ -898,6 +920,93 @@ h1::after {
         return wrapper;
     }
 
+    function renderMermaid(messageEl){
+        if (!window.mermaid) return;
+        mermaid.initialize({ startOnLoad: false });
+        const codeBlocks = messageEl.querySelectorAll('pre code');
+        codeBlocks.forEach((code) => {
+            if (code.className.includes('language-mermaid')) {
+                const parentPre = code.parentElement;
+                const src = code.textContent;
+                const container = document.createElement('div');
+                container.className = 'mermaid';
+                container.textContent = src;
+                parentPre.replaceWith(container);
+                try { mermaid.init(undefined, container); } catch (e) {}
+            }
+        });
+    }
+
+    function renderExcelDemo(messageEl){
+        const codeBlocks = messageEl.querySelectorAll('pre code');
+        codeBlocks.forEach((code) => {
+            if (code.className.includes('language-excel-demo')) {
+                const parentPre = code.parentElement;
+                let demo;
+                try { demo = JSON.parse(code.textContent); } catch (e) { return; }
+                const demoEl = document.createElement('div');
+                demoEl.className = 'excel-demo';
+                const title = document.createElement('h4');
+                title.textContent = demo.title || 'Excel Demo';
+                demoEl.appendChild(title);
+                const grid = document.createElement('div');
+                grid.className = 'demo-grid';
+                const left = document.createElement('div'); left.className = 'demo-section';
+                const right = document.createElement('div'); right.className = 'demo-section';
+                left.innerHTML = '<strong>입력</strong>';
+                right.innerHTML = '<strong>출력</strong>';
+                grid.appendChild(left); grid.appendChild(right);
+                demoEl.appendChild(grid);
+                // render inputs
+                (demo.inputs||[]).forEach(t => left.appendChild(renderTable(t)));
+                // steps
+                const steps = document.createElement('div'); steps.className = 'steps';
+                (demo.steps||[]).forEach((s,idx)=>{
+                    const step = document.createElement('div'); step.className='step';
+                    step.innerHTML = `<div><strong>Step ${idx+1}</strong> - ${escapeHtml(s.desc||'')}</div>` +
+                        (s.formula?`<div>Formula: <span class="formula">${escapeHtml(s.formula)}</span></div>`:'') +
+                        (s.result!==undefined?`<div>Result: <span class="formula">${escapeHtml(String(s.result))}</span></div>`:'');
+                    steps.appendChild(step);
+                });
+                demoEl.appendChild(steps);
+                // outputs
+                (demo.outputs||[]).forEach(t => right.appendChild(renderTable(t, demo.steps && demo.steps[0] && demo.steps[0].highlight)));
+                parentPre.replaceWith(demoEl);
+            }
+        });
+    }
+
+    function renderTable(tableDef, highlight){
+        const wrap = document.createElement('div');
+        const title = document.createElement('div');
+        title.style.fontSize = '12px';
+        title.style.margin = '6px 0';
+        title.textContent = tableDef.name || '표';
+        wrap.appendChild(title);
+        const table = document.createElement('table');
+        const data = tableDef.data || [];
+        data.forEach((row, rIdx)=>{
+            const tr = document.createElement('tr');
+            row.forEach((cell, cIdx)=>{
+                const td = document.createElement(rIdx===0?'th':'td');
+                td.textContent = String(cell);
+                if (highlight && Array.isArray(highlight.cells)){
+                    const colLetter = String.fromCharCode('A'.charCodeAt(0)+cIdx);
+                    const addr = `${colLetter}${rIdx+1}`;
+                    if (highlight.cells.includes(addr)) td.classList.add('cell-highlight');
+                }
+                tr.appendChild(td);
+            });
+            table.appendChild(tr);
+        });
+        wrap.appendChild(table);
+        return wrap;
+    }
+
+    function escapeHtml(str){
+        return str.replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+    }
+
     async function handleFileChange(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -914,6 +1023,11 @@ h1::after {
             const data = await response.json();
             if (response.ok) {
                 loadingWrapper.remove();
+                // Align session_id if server created/normalized it
+                if (data.session_id && data.session_id !== currentSessionId) {
+                    currentSessionId = data.session_id;
+                    sessionStorage.setItem('excellySessionId', currentSessionId);
+                }
                 displaySheetSelection(data.sheets);
             } else {
                 throw new Error(data.detail || '시트 분석에 실패했습니다.');
@@ -969,6 +1083,7 @@ h1::after {
         const formData = new FormData();
         formData.append('question', question);
         formData.append('session_id', currentSessionId);
+        if (conciseToggle && conciseToggle.checked) formData.append('answer_style','concise');
         if (selectedSheet) formData.append('selected_sheet', selectedSheet);
         if (pastedImageFile) formData.append('image', pastedImageFile, 'pasted_image.png');
         
