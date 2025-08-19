@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 엑셀 해결사 'Excelly' 🤖</title>
+<link rel="icon" href="/static/images/excelly-logo.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="/static/images/excelly-logo.jpg">
+<meta property="og:image" content="/static/images/excelly-logo.jpg">
+<meta property="og:title" content="AI 엑셀 해결사 'Excelly'">
+<meta property="og:description" content="OpenAI와 Gemini를 활용한 지능형 엑셀 도우미">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root { 
+    --primary-color: #1a73e8; 
+    --secondary-color: #34a853;
+    --accent-color: #ea4335;
+    --bg-light: #f0f2f5; 
+    --bg-panel: #e9eef6; 
+    --border-color: #dcdcdc;
+    --gradient-primary: linear-gradient(135deg, #1a73e8 0%, #34a853 100%);
+    --gradient-secondary: linear-gradient(135deg, #4285f4 0%, #ea4335 100%);
+    --shadow-soft: 0 4px 20px rgba(26, 115, 232, 0.15);
+    --shadow-medium: 0 8px 30px rgba(26, 115, 232, 0.2);
+}
+
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background: linear-gradient(135deg, #f0f2f5 0%, #e9eef6 100%);
+    color: #333; 
+    margin: 0; 
+    font-size: 15px; 
+    overflow: hidden; 
+}
+
+.main-layout { display: flex; width: 100vw; height: 100vh; }
+
+/* ✨ [업그레이드] History Panel CSS with Logo */
+.history-panel {
+    width: 280px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s ease;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-soft);
+}
+
+.history-header { 
+    padding: 20px 15px; 
+    text-align: center; 
+    border-bottom: 1px solid var(--border-color); 
+    flex-shrink: 0; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    background: var(--gradient-primary);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.history-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(180deg); }
+}
+
+.history-logo-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.history-logo {
+    width: 25px;
+    height: 25px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    object-fit: cover;
+}
+
+.history-header h2 { 
+    margin: 0; 
+    font-size: 18px; 
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.history-list { list-style: none; padding: 10px; margin: 0; overflow-y: auto; flex-grow: 1; }
+.history-item { 
+    padding: 12px 15px; 
+    margin-bottom: 8px; 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 12px; 
+    cursor: pointer; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    font-size: 14px; 
+    border: 2px solid transparent; 
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.history-item:hover { 
+    border-color: var(--primary-color); 
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.history-item.active { 
+    border-color: var(--primary-color); 
+    background: linear-gradient(135deg, #dbeaff 0%, #e3f2fd 100%);
+    font-weight: bold; 
+    box-shadow: var(--shadow-medium);
+}
+
+.new-chat-btn { 
+    margin: 10px; 
+    padding: 15px; 
+    background: var(--gradient-primary);
+    color: white; 
+    border: none; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    font-size: 15px; 
+    text-align: center; 
+    flex-shrink: 0;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-soft);
+}
+
+.new-chat-btn:hover { 
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.close-history-btn, .open-history-btn { 
+    background: none; 
+    border: none; 
+    font-size: 24px; 
+    cursor: pointer; 
+    padding: 0 5px; 
+    color: white; 
+    transition: all 0.3s ease;
+}
+
+.close-history-btn:hover, .open-history-btn:hover {
+    transform: scale(1.1);
+}
+
+/* ✨ [신규] Panel 숨김/보임 처리 */
+.open-history-btn { 
+    position: fixed; 
+    top: 10px; 
+    left: 10px; 
+    z-index: 1001; 
+    background: var(--gradient-primary);
+    border-radius: 50%; 
+    width: 50px; 
+    height: 50px; 
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: var(--shadow-medium);
+    color: white;
+    font-size: 20px;
+}
+
+@media (max-width: 768px) {
+    .history-panel { position: fixed; height: 100%; z-index: 1000; margin-left: -281px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+    .history-panel.visible { margin-left: 0; }
+    .open-history-btn { display: flex; }
+    
+    .chatbox { 
+        padding: 10px; 
+    }
+    
+    .message { 
+        max-width: 95%; 
+        padding: 12px 16px; 
+    }
+    
+    .input-area { 
+        padding: 15px; 
+    }
+    
+    .input-form { 
+        gap: 10px; 
+    }
+    
+    #userInput { 
+        padding: 12px 16px; 
+        font-size: 14px;
+    }
+    
+    .file-button, .submit-button { 
+        width: 45px; 
+        height: 45px; 
+        font-size: 18px; 
+    }
+}
+
+.container { flex-grow: 1; height: 100vh; background-color: white; display: flex; flex-direction: column; }
+
+/* ✨ [업그레이드] Header with 3D Robot Logo */
+header { 
+    padding: 20px; 
+    border-bottom: 1px solid var(--border-color); 
+    text-align: center; 
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><defs><linearGradient id="robotGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%231a73e8;stop-opacity:0.1"/><stop offset="100%" style="stop-color:%2334a853;stop-opacity:0.1"/></linearGradient></defs><rect x="20" y="30" width="40" height="50" rx="8" fill="url(%23robotGradient)"/><circle cx="30" cy="40" r="3" fill="%231a73e8"/><circle cx="50" cy="40" r="3" fill="%231a73e8"/><path d="M 35 50 Q 40 55 45 50" stroke="%2334a853" stroke-width="2" fill="none"/></text x="70" y="45" font-family="Arial" font-size="16" fill="%231a73e8" font-weight="bold">Excelly</text></svg>');
+    opacity: 0.1;
+    animation: robotFloat 4s ease-in-out infinite;
+}
+
+@keyframes robotFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+.header-content {
+    position: relative;
+    z-index: 2;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.main-logo {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+    transition: all 0.3s ease;
+    object-fit: cover;
+}
+
+.main-logo:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-medium);
+}
+
+h1 { 
+    margin: 0; 
+    font-size: 28px; 
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+h1::after {
+    content: '✨';
+    position: absolute;
+    right: -30px;
+    top: 0;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
+}
+
+.chatbox { 
+    flex-grow: 1; 
+    padding: 15px; 
+    overflow-y: auto;
+    background: linear-gradient(135deg, #fafbfc 0%, #f0f2f5 100%);
+    position: relative;
+    background-image: url('/static/images/chat-background.jpg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: scroll;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.chatbox::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.chatbox::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="8" fill="none" stroke="%231a73e8" stroke-width="1" opacity="0.1"/><circle cx="80" cy="40" r="6" fill="none" stroke="%2334a853" stroke-width="1" opacity="0.1"/><circle cx="40" cy="80" r="10" fill="none" stroke="%23ea4335" stroke-width="1" opacity="0.1"/><path d="M 15 25 Q 25 15 35 25" stroke="%231a73e8" stroke-width="1" fill="none" opacity="0.2"/><path d="M 75 35 Q 85 25 95 35" stroke="%2334a853" stroke-width="1" fill="none" opacity="0.2"/></svg>');
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.message-wrapper { margin-bottom: 20px; display: flex; flex-direction: column; position: relative; z-index: 3; }
+.message { 
+    max-width: 90%; 
+    padding: 15px 20px; 
+    border-radius: 20px; 
+    line-height: 1.6; 
+    word-wrap: break-word;
+    position: relative;
+    transition: all 0.3s ease;
+    z-index: 3;
+}
+
+.user-wrapper { align-items: flex-end; }
+.ai-wrapper { align-items: flex-start; }
+
+.user { 
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: var(--shadow-soft);
+}
+
+.user::before {
+    content: '💬';
+    position: absolute;
+    left: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    opacity: 0.7;
+}
+
+.user img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
+
+.ai { 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    color: #333;
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-soft);
+}
+
+.ai::before {
+    content: '🤖';
+    position: absolute;
+    left: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    opacity: 0.7;
+}
+
+.ai pre { 
+    position: relative; 
+    background-color: #282c34; 
+    color: #abb2bf; 
+    padding: 1.2em 1em 1em; 
+    border-radius: 12px; 
+    overflow-x: auto; 
+    margin: 1em 0;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.copy-button { 
+    position: absolute; 
+    top: 5px; 
+    right: 5px; 
+    background: var(--gradient-secondary);
+    color: white; 
+    border: none; 
+    padding: 6px 12px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 12px; 
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+/* Excel Demo (AI-rendered) */
+.excel-demo { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin: 10px 0; }
+.excel-demo h4 { margin: 6px 0 10px; font-size: 15px; }
+.excel-demo .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.excel-demo .demo-section { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
+.excel-demo table { border-collapse: collapse; width: 100%; font-size: 13px; background: #fff; }
+.excel-demo table th, .excel-demo table td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; }
+.excel-demo .cell-highlight { background: #fff3cd; box-shadow: inset 0 0 0 2px #ffe69c; }
+.excel-demo .steps { margin-top: 8px; }
+.excel-demo .step { padding: 8px; border-left: 3px solid var(--primary-color); background: #f8fafc; border-radius: 6px; margin-bottom: 8px; }
+.excel-demo .formula { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+
+.copy-button:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* ✨ [신규] 시트 선택 UI */
+.sheet-selection { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
+.sheet-btn { 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid var(--primary-color); 
+    color: var(--primary-color); 
+    padding: 8px 15px; 
+    margin: 5px; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.sheet-btn:hover { 
+    background: var(--gradient-primary);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.feedback-section { padding: 10px 0 0; text-align: right; }
+.feedback-button { 
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #ccc; 
+    padding: 8px 15px; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    margin-left: 8px; 
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+
+.feedback-button:hover { 
+    background: var(--gradient-secondary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+}
+
+.input-area { 
+    padding: 20px; 
+    border-top: 1px solid var(--border-color); 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    flex-shrink: 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+}
+
+.input-form { display: flex; gap: 15px; align-items: center; }
+#userInput { 
+    flex-grow: 1; 
+    border: 2px solid var(--border-color); 
+    border-radius: 25px; 
+    padding: 15px 20px; 
+    font-size: 15px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+#userInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+.file-button, .submit-button { 
+    background: var(--gradient-primary);
+    color: white; 
+    border: none; 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    font-size: 20px; 
+    flex-shrink: 0; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-soft);
+}
+
+.file-button:hover, .submit-button:hover { 
+    transform: scale(1.1);
+    box-shadow: var(--shadow-medium);
+}
+
+#pasted-image-preview { max-width: 100px; max-height: 40px; margin-right: 10px; border-radius: 8px; object-fit: cover; }
+.file-name-display { font-size: 12px; color: #666; margin-right: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+
+/* ✨ [신규] 로딩 애니메이션 */
+.loading-dots {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 20px;
+}
+
+.loading-dots div {
+    position: absolute;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.loading-dots div:nth-child(1) {
+    left: 8px;
+    animation: loading1 0.6s infinite;
+}
+
+.loading-dots div:nth-child(2) {
+    left: 8px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(3) {
+    left: 32px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(4) {
+    left: 56px;
+    animation: loading3 0.6s infinite;
+}
+
+@keyframes loading1 {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+}
+
+@keyframes loading3 {
+    0% { transform: scale(1); }
+    100% { transform: scale(0); }
+}
+
+@keyframes loading2 {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(24px, 0); }
+}
+</style>
+</head>
+<body>
+
+<div class="main-layout">
+    <button class="open-history-btn" onclick="toggleHistoryPanel()">☰</button>
+    <div class="history-panel" id="historyPanel">
+        <div class="history-header">
+            <div class="history-logo-container">
+                <img src="/static/images/excelly-logo.jpg" alt="Excelly Logo" class="history-logo">
+                <h2>💬 대화 기록</h2>
+            </div>
+            <button class="close-history-btn" onclick="toggleHistoryPanel()">×</button>
+        </div>
+        <button class="new-chat-btn" onclick="startNewChat()">🚀 새 대화 시작하기</button>
+        <button class="clear-history-btn" onclick="clearCurrentSession()" style="margin: 0 10px 10px; padding: 10px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.3s ease;">🗑️ 현재 대화 지우기</button>
+        <button class="clear-all-history-btn" onclick="clearAllSessions()" style="margin: 0 10px 10px; padding: 10px; background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.3s ease;">🗑️ 모든 대화 지우기</button>
+        <ul class="history-list" id="historyList"></ul>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="/static/images/excelly-logo.jpg" alt="Excelly Logo" class="main-logo">
+                    <h1>AI 엑셀 해결사 'Excelly'</h1>
+                </div>
+                    <div style="margin-top:8px; display:flex; gap:10px; justify-content:center; align-items:center;">
+                        <label style="font-size:12px; color:#555; display:flex; align-items:center; gap:6px;">
+                            <input type="checkbox" id="conciseToggle" /> 간단 답변 모드
+                        </label>
+                    <a href="/guide" target="_blank" style="font-size:12px; color:#1a73e8; text-decoration:none; border:1px solid #d0d7de; padding:6px 10px; border-radius:8px; background:#fff;">사용 가이드 열기</a>
+                    </div>
+                <div id="ai-status" style="font-size: 12px; color: #666; margin-top: 5px;">
+                    <span id="status-text">AI 상태 확인 중...</span>
+                    <span id="model-info" style="margin-left: 10px;"></span>
+                </div>
+            </div>
+        </header>
+        <div class="chatbox" id="chatbox"></div>
+        <div class="input-area" id="main-input-area">
+            <form class="input-form" id="chatForm" onsubmit="handleFormSubmit(event)">
+                <div id="file-name-display" class="file-name-display"></div>
+                <img id="pasted-image-preview" style="display:none;">
+                <input type="file" id="fileInput" style="display: none;" onchange="handleFileChange(event)" accept=".xlsx, .xls, .csv">
+                <button type="button" class="file-button" onclick="document.getElementById('fileInput').click()" title="파일 첨부">📎</button>
+                <input type="text" id="userInput" placeholder="질문을 입력하거나, 이미지를 붙여넣으세요">
+                <button type="submit" class="submit-button" title="전송">🚀</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatForm = document.getElementById('chatForm');
+    const userInput = document.getElementById('userInput');
+    const fileInput = document.getElementById('fileInput');
+    const chatbox = document.getElementById('chatbox');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyList = document.getElementById('historyList');
+    const imagePreview = document.getElementById('pasted-image-preview');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const conciseToggle = document.getElementById('conciseToggle');
+
+    let currentSessionId = sessionStorage.getItem('excellySessionId');
+    let isWaitingForResponse = false;
+    let pastedImageFile = null;
+    
+    // AI 상태 확인
+    async function checkAIStatus() {
+        try {
+            const response = await fetch('/api/chat/status');
+            const status = await response.json();
+            
+            const statusText = document.getElementById('status-text');
+            const modelInfo = document.getElementById('model-info');
+            
+            if (status.status === 'healthy') {
+                const aiService = status.ai_service;
+                statusText.textContent = '✅ AI 서비스 정상';
+                statusText.style.color = '#28a745';
+                
+                // 사용 가능한 모델 정보 표시
+                const availableModels = [];
+                if (aiService.openai_available) availableModels.push('OpenAI');
+                if (aiService.gemini_pro_available) availableModels.push('Gemini 2.5 Pro');
+                if (aiService.gemini_2_5_flash_available) availableModels.push('Gemini 2.5 Flash');
+                if (aiService.gemini_2_0_flash_available) availableModels.push('Gemini 2.0 Flash');
+                
+                modelInfo.textContent = `사용 가능: ${availableModels.join(', ')}`;
+                modelInfo.style.color = '#666';
+            } else {
+                statusText.textContent = '❌ AI 서비스 오류';
+                statusText.style.color = '#dc3545';
+                modelInfo.textContent = '';
+            }
+        } catch (error) {
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = '⚠️ AI 서비스 연결 실패';
+            statusText.style.color = '#ffc107';
+        }
+    }
+
+    function toggleHistoryPanel() {
+        historyPanel.classList.toggle('visible');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!currentSessionId) {
+            currentSessionId = 'session_' + Date.now() + Math.random();
+            sessionStorage.setItem('excellySessionId', currentSessionId);
+        }
+        await checkAIStatus();
+        await loadSessions();
+        await loadCurrentChat();
+    });
+
+    async function loadSessions() {
+        try {
+            const response = await fetch('/api/chat/sessions');
+            if (!response.ok) return;
+            const sessions = await response.json();
+            historyList.innerHTML = '';
+            
+            // 세션이 없으면 빈 상태로 유지
+            if (!sessions || sessions.length === 0) {
+                return;
+            }
+            
+            sessions.forEach(session => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                let firstMessage = (session.first_message || '새로운 대화').replace(/^질문: /, '');
+                li.textContent = firstMessage;
+                li.title = firstMessage;
+                li.dataset.sessionId = session.session_id;
+                if (session.session_id === currentSessionId) {
+                    li.classList.add('active');
+                }
+                li.onclick = () => selectSession(session.session_id);
+                historyList.appendChild(li);
+            });
+        } catch (error) {
+            console.error("세션 목록 로딩 실패:", error);
+        }
+    }
+
+    async function selectSession(sessionId) {
+        currentSessionId = sessionId;
+        sessionStorage.setItem('excellySessionId', sessionId);
+        sessionStorage.removeItem('excellyConversationContext'); // Clear local context
+        
+        // Update active state in history list
+        document.querySelectorAll('.history-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        const activeItem = document.querySelector(`[data-session-id="${sessionId}"]`);
+        if (activeItem) {
+            activeItem.classList.add('active');
+        }
+        
+        // Load the selected session's chat history
+        await loadCurrentChat();
+    }
+    
+    function startNewChat() {
+        // Generate new session ID
+        currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('excellySessionId', currentSessionId);
+        sessionStorage.removeItem('excellyConversationContext');
+        
+        // Clear chat display and add welcome message
+        chatbox.innerHTML = '';
+        addWelcomeMessage();
+        
+        // Update active state in history list
+        document.querySelectorAll('.history-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Refresh session list to include new session
+        loadSessions();
+    }
+
+    async function clearCurrentSession() {
+        if (!currentSessionId) {
+            alert('지울 대화가 없습니다.');
+            return;
+        }
+        
+        if (!confirm('현재 대화 기록을 모두 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/chat/sessions/${currentSessionId}/messages`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Clear chat display
+                chatbox.innerHTML = '';
+                sessionStorage.removeItem('excellyConversationContext');
+                
+                // Add welcome message
+                addWelcomeMessage();
+                
+                // Refresh session list
+                await loadSessions();
+                
+                alert('대화 기록이 지워졌습니다.');
+            } else {
+                const errorData = await response.json();
+                alert(`대화 기록 삭제에 실패했습니다: ${errorData.detail || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('대화 기록 삭제 오류:', error);
+            alert('대화 기록 삭제 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function clearAllSessions() {
+        if (!confirm('모든 대화 기록을 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/chat/sessions/all', {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Clear chat display
+                chatbox.innerHTML = '';
+                sessionStorage.removeItem('excellySessionId');
+                sessionStorage.removeItem('excellyConversationContext');
+                currentSessionId = null;
+                
+                // Clear session list completely
+                historyList.innerHTML = '';
+                
+                // Add welcome message
+                addWelcomeMessage();
+                
+                alert('모든 대화 기록이 지워졌습니다.');
+            } else {
+                const errorData = await response.json();
+                alert(`대화 기록 삭제에 실패했습니다: ${errorData.detail || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('대화 기록 삭제 오류:', error);
+            alert('대화 기록 삭제 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function loadCurrentChat() {
+        chatbox.innerHTML = '';
+        if (currentSessionId) {
+            const loadingMessage = addMessage('ai', '이전 대화 기록을 불러오는 중... 🧐');
+            try {
+                const response = await fetch(`/api/chat/history/${currentSessionId}`);
+                if(loadingMessage) loadingMessage.remove();
+                if (response.ok) {
+                    const data = await response.json();
+                    const history = data.messages || data; // Backward compatibility
+                    const conversationContext = data.conversation_context;
+                    
+                    let lastMessageWrapper = null;
+                    history.forEach(msg => {
+                        let content = msg.content;
+                        if (msg.role === 'user' && content.startsWith('질문: ')) {
+                            content = content.substring(4).trim();
+                        }
+                        lastMessageWrapper = addMessage(msg.role, content, msg.role === 'ai');
+                    });
+                    if(lastMessageWrapper && history.length > 0 && history[history.length-1].role === 'ai'){
+                         addFeedbackUI(lastMessageWrapper);
+                    }
+                    
+                    // Store conversation context for continuity
+                    if (conversationContext) {
+                        sessionStorage.setItem('excellyConversationContext', JSON.stringify(conversationContext));
+                    }
+                    
+                    if (history.length > 0) {
+                        addMessage('ai', '안녕하세요! 이전 대화에 이어서 계속할까요? 😉');
+                    } else {
+                        addWelcomeMessage();
+                    }
+                } else {
+                    addWelcomeMessage();
+                }
+            } catch (error) {
+                if(loadingMessage) loadingMessage.remove();
+                addWelcomeMessage();
+            }
+        } else {
+            addWelcomeMessage();
+        }
+    }
+    
+    function addWelcomeMessage() {
+        addMessage('ai', '안녕하세요! 엑셀에 관한 것이라면 무엇이든 물어보세요. 함수, VBA, 피벗 테이블... 전부 환영입니다! 😉 파일을 첨부하거나, 오류 화면을 복사해서 붙여넣어 보세요!');
+    }
+
+    function addMessage(sender, content, isHtml = false, imageUrl = null) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${sender}-wrapper`;
+        const message = document.createElement('div');
+        message.className = `message ${sender}`;
+        if (isHtml) {
+            message.innerHTML = marked.parse(content || '');
+            renderMermaid(message);
+            renderExcelDemo(message);
+        } else {
+            message.textContent = content;
+        }
+        if (imageUrl) {
+            const imgElement = document.createElement('img');
+            imgElement.src = imageUrl;
+            message.appendChild(imgElement);
+        }
+        wrapper.appendChild(message);
+        chatbox.appendChild(wrapper);
+        chatbox.scrollTop = chatbox.scrollHeight;
+        if (isHtml && sender === 'ai') {
+            message.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+                const pre = block.parentElement;
+                if (pre.querySelector('.copy-button')) return;
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-button';
+                copyButton.textContent = 'Copy';
+                copyButton.onclick = () => {
+                    navigator.clipboard.writeText(block.textContent).then(() => {
+                        copyButton.textContent = 'Copied!';
+                        setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
+                    });
+                };
+                pre.appendChild(copyButton);
+            });
+        }
+        return wrapper;
+    }
+
+    function renderMermaid(messageEl){
+        if (!window.mermaid) return;
+        mermaid.initialize({ startOnLoad: false });
+        const codeBlocks = messageEl.querySelectorAll('pre code');
+        codeBlocks.forEach((code) => {
+            if (code.className.includes('language-mermaid')) {
+                const parentPre = code.parentElement;
+                const src = code.textContent;
+                const container = document.createElement('div');
+                container.className = 'mermaid';
+                container.textContent = src;
+                parentPre.replaceWith(container);
+                try { mermaid.init(undefined, container); } catch (e) {}
+            }
+        });
+    }
+
+    function renderExcelDemo(messageEl){
+        const codeBlocks = messageEl.querySelectorAll('pre code');
+        codeBlocks.forEach((code) => {
+            if (code.className.includes('language-excel-demo')) {
+                const parentPre = code.parentElement;
+                let demo;
+                try { demo = JSON.parse(code.textContent); } catch (e) { return; }
+                const demoEl = document.createElement('div');
+                demoEl.className = 'excel-demo';
+                const title = document.createElement('h4');
+                title.textContent = demo.title || 'Excel Demo';
+                demoEl.appendChild(title);
+                const grid = document.createElement('div');
+                grid.className = 'demo-grid';
+                const left = document.createElement('div'); left.className = 'demo-section';
+                const right = document.createElement('div'); right.className = 'demo-section';
+                left.innerHTML = '<strong>입력</strong>';
+                right.innerHTML = '<strong>출력</strong>';
+                grid.appendChild(left); grid.appendChild(right);
+                demoEl.appendChild(grid);
+                // render inputs
+                (demo.inputs||[]).forEach(t => left.appendChild(renderTable(t)));
+                // steps
+                const steps = document.createElement('div'); steps.className = 'steps';
+                (demo.steps||[]).forEach((s,idx)=>{
+                    const step = document.createElement('div'); step.className='step';
+                    step.innerHTML = `<div><strong>Step ${idx+1}</strong> - ${escapeHtml(s.desc||'')}</div>` +
+                        (s.formula?`<div>Formula: <span class="formula">${escapeHtml(s.formula)}</span></div>`:'') +
+                        (s.result!==undefined?`<div>Result: <span class="formula">${escapeHtml(String(s.result))}</span></div>`:'');
+                    steps.appendChild(step);
+                });
+                demoEl.appendChild(steps);
+                // outputs
+                (demo.outputs||[]).forEach(t => right.appendChild(renderTable(t, demo.steps && demo.steps[0] && demo.steps[0].highlight)));
+                parentPre.replaceWith(demoEl);
+            }
+        });
+    }
+
+    function renderTable(tableDef, highlight){
+        const wrap = document.createElement('div');
+        const title = document.createElement('div');
+        title.style.fontSize = '12px';
+        title.style.margin = '6px 0';
+        title.textContent = tableDef.name || '표';
+        wrap.appendChild(title);
+        const table = document.createElement('table');
+        const data = tableDef.data || [];
+        data.forEach((row, rIdx)=>{
+            const tr = document.createElement('tr');
+            row.forEach((cell, cIdx)=>{
+                const td = document.createElement(rIdx===0?'th':'td');
+                td.textContent = String(cell);
+                if (highlight && Array.isArray(highlight.cells)){
+                    const colLetter = String.fromCharCode('A'.charCodeAt(0)+cIdx);
+                    const addr = `${colLetter}${rIdx+1}`;
+                    if (highlight.cells.includes(addr)) td.classList.add('cell-highlight');
+                }
+                tr.appendChild(td);
+            });
+            table.appendChild(tr);
+        });
+        wrap.appendChild(table);
+        return wrap;
+    }
+
+    function escapeHtml(str){
+        return str.replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+    }
+
+    async function handleFileChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        addMessage('user', `(파일 첨부: ${file.name})`);
+        const loadingWrapper = addMessage('ai', '파일을 분석하여 시트 목록을 가져오는 중... 🧐');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('session_id', currentSessionId);
+
+        try {
+            const response = await fetch('/api/chat/analyze-sheets', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (response.ok) {
+                loadingWrapper.remove();
+                // Align session_id if server created/normalized it
+                if (data.session_id && data.session_id !== currentSessionId) {
+                    currentSessionId = data.session_id;
+                    sessionStorage.setItem('excellySessionId', currentSessionId);
+                }
+                displaySheetSelection(data.sheets);
+            } else {
+                throw new Error(data.detail || '시트 분석에 실패했습니다.');
+            }
+        } catch (error) {
+            if(loadingWrapper) loadingWrapper.remove();
+            addMessage('ai', `오류: ${error.message}`);
+        }
+    }
+
+    function displaySheetSelection(sheets) {
+        const wrapper = addMessage('ai', '어떤 시트를 분석해드릴까요?');
+        const selectionDiv = document.createElement('div');
+        selectionDiv.className = 'sheet-selection';
+
+        sheets.forEach(sheet => {
+            const btn = document.createElement('button');
+            btn.className = 'sheet-btn';
+            btn.textContent = sheet;
+            btn.onclick = () => sendQuestionWithSheet(sheet);
+            selectionDiv.appendChild(btn);
+        });
+        
+        if (sheets.length > 1) {
+            const allBtn = document.createElement('button');
+            allBtn.className = 'sheet-btn';
+            allBtn.textContent = '모든 시트';
+            allBtn.onclick = () => sendQuestionWithSheet('all_sheets');
+            selectionDiv.appendChild(allBtn);
+        }
+        wrapper.querySelector('.message').appendChild(selectionDiv);
+    }
+    
+    async function handleFormSubmit(event) {
+        event.preventDefault();
+        if (fileInput.files.length > 0) {
+             addMessage('ai', '☝️ 먼저 위에서 분석할 시트를 선택해주세요!');
+             return;
+        }
+        await sendQuestionWithSheet(null);
+    }
+
+    async function sendQuestionWithSheet(selectedSheet) {
+        if (isWaitingForResponse) return;
+        const question = userInput.value.trim();
+        if (question === '' && !pastedImageFile && !selectedSheet) return;
+
+        const sheetSelectionUI = document.querySelector('.sheet-selection');
+        if (sheetSelectionUI) sheetSelectionUI.parentElement.remove();
+        
+        if (!selectedSheet) addMessage('user', question);
+
+        const formData = new FormData();
+        formData.append('question', question);
+        formData.append('session_id', currentSessionId);
+        if (conciseToggle && conciseToggle.checked) formData.append('answer_style','concise');
+        if (selectedSheet) formData.append('selected_sheet', selectedSheet);
+        if (pastedImageFile) formData.append('image', pastedImageFile, 'pasted_image.png');
+        
+        await sendFormData(formData);
+    }
+
+    async function sendFormData(formData) {
+        isWaitingForResponse = true;
+        const submitButton = document.querySelector('.submit-button');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<div class="loading-dots"><div></div><div></div><div></div><div></div></div>';
+        submitButton.disabled = true;
+        
+        const loadingWrapper = addMessage('ai', '🤖 생각 중...');
+        try {
+            const response = await fetch('/api/chat/ask', { method: 'POST', body: formData });
+            if(loadingWrapper) loadingWrapper.remove();
+            const data = await response.json();
+            if (response.ok) {
+                const aiWrapper = addMessage('ai', data.answer, true);
+                
+                // Handle different response types
+                if (data.response_type === 'clarification') {
+                    // Add clarification-specific UI
+                    addClarificationUI(aiWrapper, data.conversation_state);
+                } else if (data.response_type === 'solution') {
+                    // Add feedback UI for solutions
+                    addFeedbackUI(aiWrapper);
+                } else {
+                    // Normal response
+                    addFeedbackUI(aiWrapper);
+                }
+                
+                // Update input placeholder based on conversation state
+                updateInputPlaceholder(data.conversation_state);
+                
+            } else {
+                throw new Error(data.detail || '알 수 없는 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            if(loadingWrapper) loadingWrapper.remove();
+            addMessage('ai', `오류 발생: ${error.message}`);
+        } finally {
+            isWaitingForResponse = false;
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+            resetInput();
+        }
+    }
+    
+    function addClarificationUI(parentWrapper, conversationState) {
+        if (parentWrapper.querySelector('.clarification-section')) return;
+        
+        const clarificationSection = document.createElement('div');
+        clarificationSection.className = 'clarification-section';
+        clarificationSection.style.padding = '10px 0';
+        clarificationSection.style.borderTop = '1px solid #eee';
+        clarificationSection.style.marginTop = '10px';
+        
+        const statusText = document.createElement('div');
+        statusText.style.fontSize = '12px';
+        statusText.style.color = '#666';
+        statusText.style.marginBottom = '5px';
+        statusText.textContent = '💡 명확화 진행 중... 질문에 답변해주세요!';
+        
+        clarificationSection.appendChild(statusText);
+        parentWrapper.appendChild(clarificationSection);
+    }
+    
+    function updateInputPlaceholder(conversationState) {
+        const userInput = document.getElementById('userInput');
+        if (conversationState === 'clarifying') {
+            userInput.placeholder = '질문에 답변해주세요...';
+        } else if (conversationState === 'planning') {
+            userInput.placeholder = '계획에 동의하시면 "좋아요" 또는 "네"라고 답해주세요...';
+        } else {
+            userInput.placeholder = '질문을 입력하거나, 이미지를 붙여넣으세요';
+        }
+    }
+
+    function resetInput() {
+        userInput.value = '';
+        fileInput.value = '';
+        pastedImageFile = null;
+        imagePreview.src = '';
+        imagePreview.style.display = 'none';
+        fileNameDisplay.textContent = '';
+        userInput.placeholder = '질문을 입력하거나, 이미지를 붙여넣으세요';
+    }
+
+    document.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || window.clipboardData).items;
+        for (const item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                pastedImageFile = item.getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.src = event.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(pastedImageFile);
+                fileInput.value = '';
+                fileNameDisplay.textContent = '';
+                userInput.placeholder = '이미지에 대한 질문을 입력하세요...';
+                e.preventDefault();
+                return;
+            }
+        }
+    });
+
+    function addFeedbackUI(parentWrapper) {
+        if (parentWrapper.querySelector('.feedback-section')) return;
+        const feedbackSection = document.createElement('div');
+        feedbackSection.className = 'feedback-section';
+        feedbackSection.innerHTML = `<button class="feedback-button" onclick="handleFeedback(true, this)">👍 해결!</button> <button class="feedback-button" onclick="handleFeedback(false, this)">👎 문제있음</button>`;
+        parentWrapper.appendChild(feedbackSection);
+    }
+
+    function handleFeedback(isSolved, buttonElement) {
+        const feedbackSection = buttonElement.parentElement;
+        if (isSolved) {
+            feedbackSection.innerHTML = "도움이 되어 다행입니다! 😊";
+            return;
+        }
+        feedbackSection.innerHTML = '';
+        const feedbackForm = document.createElement('form');
+        feedbackForm.className = 'input-form';
+        feedbackForm.style.padding = '10px 0';
+        feedbackForm.innerHTML = `<img id="feedback-image-preview" style="max-width:100px; max-height:40px; margin-right:10px; border-radius:5px; display:none;"><input type="text" placeholder="문제 상황을 설명하거나, 이미지를 붙여넣으세요" style="flex-grow:1; border-radius:20px; padding:10px 18px; border:1px solid #ccc;"><button type="submit" class="submit-button">🚀</button>`;
+        feedbackSection.appendChild(feedbackForm);
+
+        let feedbackImageFile = null;
+        const feedbackInput = feedbackForm.querySelector('input');
+        const feedbackPreview = feedbackForm.querySelector('#feedback-image-preview');
+
+        feedbackForm.addEventListener('paste', (e) => {
+             const items = (e.clipboardData || window.clipboardData).items;
+             for (const item of items) {
+                 if (item.type.indexOf('image') !== -1) {
+                     feedbackImageFile = item.getAsFile();
+                     const reader = new FileReader();
+                     reader.onload = (event) => { feedbackPreview.src = event.target.result; feedbackPreview.style.display = 'block'; };
+                     reader.readAsDataURL(feedbackImageFile);
+                     e.preventDefault();
+                     return;
+                 }
+             }
+        });
+        
+        feedbackForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isWaitingForResponse) return;
+            const feedbackText = feedbackInput.value.trim();
+            if (!feedbackText && !feedbackImageFile) return;
+
+            feedbackSection.remove();
+            let feedbackUserMessage = `(피드백) ${feedbackText}`;
+            if (feedbackImageFile) {
+                feedbackUserMessage += ' (이미지 첨부)';
+            }
+            addMessage('user', feedbackUserMessage);
+            
+            const formData = new FormData();
+            formData.append('question', feedbackText);
+            formData.append('session_id', currentSessionId);
+            formData.append('is_feedback', true);
+            if (feedbackImageFile) formData.append('image', feedbackImageFile, 'pasted_feedback_image.png');
+
+            sendFormData(formData);
+        });
+    }
+</script>
+</body>
+</html>

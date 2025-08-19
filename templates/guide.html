@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excelly 사용 가이드</title>
+  <link rel="icon" href="/static/images/excelly-logo.jpg" type="image/jpeg">
+  <style>
+    :root { --primary:#1a73e8; --soft:#f5f7fb; --border:#e5e7eb; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin:0; background:linear-gradient(135deg,#f0f2f5 0%,#e9eef6 100%); color:#243b53; }
+    .wrap { max-width: 980px; margin: 32px auto; background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:0 10px 30px rgba(26,115,232,.08); overflow:hidden; }
+    header { display:flex; align-items:center; gap:12px; padding:18px 22px; background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%); border-bottom:1px solid var(--border); }
+    header img { width:36px; height:36px; border-radius:8px; }
+    header h1 { font-size:18px; margin:0; background:linear-gradient(135deg,#1a73e8 0%,#34a853 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .content { padding: 22px; }
+    h2 { font-size:18px; margin:18px 0 10px; }
+    p { line-height:1.7; margin:8px 0; }
+    .card { background:var(--soft); border:1px solid var(--border); border-radius:12px; padding:14px; margin:12px 0; }
+    .grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; }
+    .btns { display:flex; gap:10px; flex-wrap:wrap; }
+    .btn { background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; }
+    .kbd { display:inline-block; border:1px solid var(--border); border-radius:6px; padding:2px 6px; background:#fff; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+    .tip { font-size:13px; color:#64748b; }
+    .footer { padding:16px 22px; border-top:1px solid var(--border); background:#fafbff; font-size:12px; color:#64748b; }
+    @media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="/static/images/excelly-logo.jpg" alt="Excelly">
+      <h1>Excelly 사용 가이드(초보자용)</h1>
+    </header>
+    <div class="content">
+      <div class="card">
+        <h2>시작하기</h2>
+        <p>엑셀로 하고 싶은 일을 자연스럽게 적어주세요. 어려운 용어 필요 없어요. 예: “이름으로 가격을 찾아줘”, “A열 중복을 지워줘”.</p>
+        <div class="btns">
+          <span class="kbd">TIP</span>
+          <span class="tip">상단의 ‘간단 답변 모드’를 켜면 짧고 핵심만 알려줘요.</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>파일 사용</h2>
+          <p>클립(📎) 버튼으로 엑셀/CSV를 올리세요. 시트 목록이 나오면 버튼으로 선택하면 됩니다.</p>
+          <p class="tip">파일을 올리고 바로 질문: “이 시트에서 코드로 가격을 찾고 싶어요”.</p>
+        </div>
+        <div class="card">
+          <h2>이미지로 질문</h2>
+          <p>오류 화면을 복사해서 붙여넣으면( <span class="kbd">Ctrl</span> + <span class="kbd">V</span> ) AI가 읽고 원인을 추정해요.</p>
+          <p class="tip">이미지로 보낸 후 “무슨 문제인지 간단히 설명해줘”라고 적어보세요.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>결과를 눈으로 보기</h2>
+        <p>수식이나 VBA를 요청하면, 표의 <strong>전/후</strong> 모습과 단계별 설명을 함께 보여줄 수 있어요.</p>
+        <ul>
+          <li>로직 설명은 다이어그램(Mermaid)으로 깔끔하게</li>
+          <li>표 예시는 Excel 데모로 입력/단계/출력을 한 번에</li>
+        </ul>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>자주 쓰는 예시</h2>
+          <ul>
+            <li>“이름으로 가격 찾기” (VLOOKUP/INDEX-MATCH)</li>
+            <li>“조건에 맞는 합계 구하기” (SUMIF/SUMIFS)</li>
+            <li>“중복 제거/고유값 뽑기”</li>
+            <li>“피벗 테이블로 요약”</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>잘 안 될 때</h2>
+          <ul>
+            <li>엑셀 버전이 어떻게 되나요? (예: 2019/365)</li>
+            <li>데이터는 숫자인가요, 문자인가요?</li>
+            <li>어떤 시트에서 할까요?</li>
+          </ul>
+          <p class="tip">이 3가지만 알려주셔도 정확도가 훨씬 올라가요.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      © Excelly. 쉽고 친절한 엑셀 도우미. 도움말은 언제든 여기에서 업데이트됩니다.
+    </div>
+  </div>
+</body>
+</html>
+
+

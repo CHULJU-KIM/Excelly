@@ -1,0 +1,39 @@
+# Core FastAPI dependencies
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+python-multipart==0.0.20
+
+# AI APIs
+openai==1.99.3
+google-generativeai==0.8.5
+
+# Data processing
+pandas==2.3.1
+openpyxl==3.1.5
+numpy==2.3.2
+
+# Image processing
+Pillow==11.3.0
+
+# Database
+sqlalchemy==2.0.35
+alembic==1.14.1
+
+# Environment and configuration
+python-dotenv==1.1.1
+
+# Template engine
+Jinja2==3.1.6
+
+# Date and time
+python-dateutil==2.9.0.post0
+pytz==2025.2
+
+# HTTP client
+httpx==0.28.1
+
+# Development and debugging
+watchfiles==1.1.0
+
+# Encoding detection (for robust CSV handling)
+charset-normalizer==3.4.0
