@@ -93,6 +93,8 @@ class SessionService:
                 messages=messages,
                 plan=db_session.plan,
                 temp_file_content=db_session.temp_file_content,
+                filename=db_session.filename,
+                selected_sheet=db_session.selected_sheet,
                 timestamp=db_session.created_at.timestamp(),
                 metadata=metadata
             )
@@ -117,15 +119,22 @@ class SessionService:
                 if key == "metadata" and isinstance(value, dict):
                     db_session.metadata_json = json.dumps(value)
                     continue
+                # Special handling for temp_file_content - ensure it's preserved
+                if key == "temp_file_content" and value is not None:
+                    print(f"💾 세션 {session_id}에 파일 내용 저장: {len(value)} bytes")
+                    db_session.temp_file_content = value
+                    continue
                 if hasattr(db_session, key):
                     setattr(db_session, key, value)
             
             db_session.updated_at = datetime.utcnow()
             db.commit()
+            print(f"✅ 세션 {session_id} 업데이트 완료")
             return True
             
         except Exception as e:
             db.rollback()
+            print(f"❌ 세션 업데이트 실패: {e}")
             return False
         finally:
             db.close()

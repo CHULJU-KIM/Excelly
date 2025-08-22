@@ -3,89 +3,509 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Excelly 사용 가이드</title>
+  <title>Excelly AI Assistant - 완벽한 엑셀 도우미</title>
   <link rel="icon" href="/static/images/excelly-logo.jpg" type="image/jpeg">
   <style>
-    :root { --primary:#1a73e8; --soft:#f5f7fb; --border:#e5e7eb; }
-    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin:0; background:linear-gradient(135deg,#f0f2f5 0%,#e9eef6 100%); color:#243b53; }
-    .wrap { max-width: 980px; margin: 32px auto; background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:0 10px 30px rgba(26,115,232,.08); overflow:hidden; }
-    header { display:flex; align-items:center; gap:12px; padding:18px 22px; background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%); border-bottom:1px solid var(--border); }
-    header img { width:36px; height:36px; border-radius:8px; }
-    header h1 { font-size:18px; margin:0; background:linear-gradient(135deg,#1a73e8 0%,#34a853 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .content { padding: 22px; }
-    h2 { font-size:18px; margin:18px 0 10px; }
-    p { line-height:1.7; margin:8px 0; }
-    .card { background:var(--soft); border:1px solid var(--border); border-radius:12px; padding:14px; margin:12px 0; }
-    .grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; }
-    .btns { display:flex; gap:10px; flex-wrap:wrap; }
-    .btn { background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; }
-    .kbd { display:inline-block; border:1px solid var(--border); border-radius:6px; padding:2px 6px; background:#fff; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
-    .tip { font-size:13px; color:#64748b; }
-    .footer { padding:16px 22px; border-top:1px solid var(--border); background:#fafbff; font-size:12px; color:#64748b; }
-    @media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #1557b0;
+      --secondary: #34a853;
+      --accent: #ea4335;
+      --warning: #fbbc04;
+      --soft: #f8f9fa;
+      --border: #e8eaed;
+      --text: #202124;
+      --text-secondary: #5f6368;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e8eaed 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+    
+    .header img {
+      width: 80px;
+      height: 80px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      margin: 0 0 10px 0;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .header p {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .feature-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--border);
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      display: block;
+    }
+    
+    .feature-card h3 {
+      font-size: 1.4rem;
+      margin: 0 0 15px 0;
+      color: var(--primary);
+    }
+    
+    .feature-card p {
+      color: var(--text-secondary);
+      margin: 0 0 20px 0;
+    }
+    
+    .example-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .example-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    
+    .example-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .example-list li::before {
+      content: "💡";
+      margin-right: 10px;
+    }
+    
+    .usage-section {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 40px;
+      box-shadow: var(--shadow);
+    }
+    
+    .usage-section h2 {
+      font-size: 2rem;
+      margin: 0 0 30px 0;
+      color: var(--primary);
+      text-align: center;
+    }
+    
+    .step-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+    }
+    
+    .step-card {
+      background: var(--soft);
+      border-radius: 12px;
+      padding: 25px;
+      border-left: 4px solid var(--primary);
+    }
+    
+    .step-number {
+      background: var(--primary);
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    
+    .step-card h4 {
+      margin: 0 0 15px 0;
+      color: var(--text);
+    }
+    
+    .step-card p {
+      margin: 0;
+      color: var(--text-secondary);
+    }
+    
+    .tips-section {
+      background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 40px;
+      border: 1px solid #d4edda;
+    }
+    
+    .tips-section h2 {
+      color: var(--secondary);
+      margin: 0 0 20px 0;
+      font-size: 1.5rem;
+    }
+    
+    .tip-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    
+    .tip-item {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      border-left: 4px solid var(--secondary);
+    }
+    
+    .tip-item h4 {
+      margin: 0 0 10px 0;
+      color: var(--secondary);
+    }
+    
+    .tip-item p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+    
+    .ai-models {
+      background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 40px;
+      border: 1px solid #d1e7ff;
+    }
+    
+    .ai-models h2 {
+      color: var(--primary);
+      margin: 0 0 20px 0;
+      font-size: 1.5rem;
+      text-align: center;
+    }
+    
+    .model-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    
+    .model-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+    
+    .model-card h4 {
+      margin: 0 0 10px 0;
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+    
+    .model-card p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-secondary);
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    
+    .keyboard {
+      display: inline-block;
+      background: #f1f3f4;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+    
+    .badge {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+    
+    .badge.new { background: var(--secondary); }
+    .badge.pro { background: var(--accent); }
+    
+    @media (max-width: 768px) {
+      .container { padding: 15px; }
+      .header h1 { font-size: 2rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .step-grid { grid-template-columns: 1fr; }
+      .usage-section { padding: 25px; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <img src="/static/images/excelly-logo.jpg" alt="Excelly">
-      <h1>Excelly 사용 가이드(초보자용)</h1>
-    </header>
-    <div class="content">
-      <div class="card">
-        <h2>시작하기</h2>
-        <p>엑셀로 하고 싶은 일을 자연스럽게 적어주세요. 어려운 용어 필요 없어요. 예: “이름으로 가격을 찾아줘”, “A열 중복을 지워줘”.</p>
-        <div class="btns">
-          <span class="kbd">TIP</span>
-          <span class="tip">상단의 ‘간단 답변 모드’를 켜면 짧고 핵심만 알려줘요.</span>
-        </div>
-      </div>
+  <div class="container">
+    <!-- 헤더 섹션 -->
+    <div class="header">
+      <img src="/static/images/excelly-logo.jpg" alt="Excelly AI Assistant">
+      <h1>Excelly AI Assistant</h1>
+      <p>AI가 이해하는 가장 친절한 엑셀 도우미</p>
+    </div>
 
-      <div class="grid">
-        <div class="card">
-          <h2>파일 사용</h2>
-          <p>클립(📎) 버튼으로 엑셀/CSV를 올리세요. 시트 목록이 나오면 버튼으로 선택하면 됩니다.</p>
-          <p class="tip">파일을 올리고 바로 질문: “이 시트에서 코드로 가격을 찾고 싶어요”.</p>
-        </div>
-        <div class="card">
-          <h2>이미지로 질문</h2>
-          <p>오류 화면을 복사해서 붙여넣으면( <span class="kbd">Ctrl</span> + <span class="kbd">V</span> ) AI가 읽고 원인을 추정해요.</p>
-          <p class="tip">이미지로 보낸 후 “무슨 문제인지 간단히 설명해줘”라고 적어보세요.</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>결과를 눈으로 보기</h2>
-        <p>수식이나 VBA를 요청하면, 표의 <strong>전/후</strong> 모습과 단계별 설명을 함께 보여줄 수 있어요.</p>
-        <ul>
-          <li>로직 설명은 다이어그램(Mermaid)으로 깔끔하게</li>
-          <li>표 예시는 Excel 데모로 입력/단계/출력을 한 번에</li>
+    <!-- 주요 기능 섹션 -->
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <h3>지능형 AI 분석</h3>
+        <p>질문을 분석해서 가장 적합한 AI 모델을 자동으로 선택합니다.</p>
+        <ul class="example-list">
+          <li>초보자 질문 → 친절한 설명</li>
+          <li>복잡한 수식 → 정확한 코드</li>
+          <li>데이터 분석 → 전문적 인사이트</li>
+          <li>VBA 매크로 → 완성된 스크립트</li>
         </ul>
       </div>
 
-      <div class="grid">
-        <div class="card">
-          <h2>자주 쓰는 예시</h2>
-          <ul>
-            <li>“이름으로 가격 찾기” (VLOOKUP/INDEX-MATCH)</li>
-            <li>“조건에 맞는 합계 구하기” (SUMIF/SUMIFS)</li>
-            <li>“중복 제거/고유값 뽑기”</li>
-            <li>“피벗 테이블로 요약”</li>
-          </ul>
+      <div class="feature-card">
+        <span class="feature-icon">📊</span>
+        <h3>파일 업로드 & 분석</h3>
+        <p>엑셀 파일을 업로드하면 AI가 내용을 분석하고 맞춤형 답변을 제공합니다.</p>
+        <ul class="example-list">
+          <li>Excel (.xlsx, .xls) 파일 지원</li>
+          <li>CSV 파일 지원</li>
+          <li>다중 시트 분석</li>
+          <li>파일 내용 기반 맞춤 답변</li>
+        </ul>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🖼️</span>
+        <h3>이미지 인식</h3>
+        <p>엑셀 화면을 캡처해서 붙여넣으면 AI가 문제를 분석하고 해결책을 제시합니다.</p>
+        <ul class="example-list">
+          <li>오류 메시지 분석</li>
+          <li>수식 문제 진단</li>
+          <li>화면 레이아웃 인식</li>
+          <li>시각적 피드백 제공</li>
+        </ul>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">💬</span>
+        <h3>대화형 학습</h3>
+        <p>AI가 사용자 수준을 파악하고 단계별로 도움을 제공합니다.</p>
+        <ul class="example-list">
+          <li>사용자 수준 자동 감지</li>
+          <li>단계별 설명 제공</li>
+          <li>추가 질문으로 명확화</li>
+          <li>대화 맥락 유지</li>
+        </ul>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">🔧</span>
+        <h3>고급 기능</h3>
+        <p>복잡한 엑셀 작업도 AI가 완벽하게 처리합니다.</p>
+        <ul class="example-list">
+          <li>VBA 매크로 작성</li>
+          <li>복잡한 수식 조합</li>
+          <li>데이터 정리 및 변환</li>
+          <li>자동화 스크립트 생성</li>
+        </ul>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>빠른 응답</h3>
+        <p>질문 유형에 따라 최적화된 AI 모델로 빠르고 정확한 답변을 제공합니다.</p>
+        <ul class="example-list">
+          <li>간단 질문 → 빠른 답변</li>
+          <li>복잡 작업 → 정확한 해결</li>
+          <li>실시간 처리</li>
+          <li>다중 모델 최적화</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 사용 방법 섹션 -->
+    <div class="usage-section">
+      <h2>🚀 시작하기</h2>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h4>질문하기</h4>
+          <p>엑셀로 하고 싶은 일을 자연스럽게 말씀해주세요. 어려운 용어는 필요 없습니다.</p>
         </div>
-        <div class="card">
-          <h2>잘 안 될 때</h2>
-          <ul>
-            <li>엑셀 버전이 어떻게 되나요? (예: 2019/365)</li>
-            <li>데이터는 숫자인가요, 문자인가요?</li>
-            <li>어떤 시트에서 할까요?</li>
-          </ul>
-          <p class="tip">이 3가지만 알려주셔도 정확도가 훨씬 올라가요.</p>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h4>파일 업로드 <span class="badge">선택</span></h4>
+          <p>클립 아이콘을 클릭해서 엑셀 파일을 업로드하면 더 정확한 답변을 받을 수 있습니다.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h4>이미지 첨부 <span class="badge">선택</span></h4>
+          <p>문제가 있는 화면을 캡처해서 붙여넣으면 AI가 문제를 분석합니다.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <h4>답변 받기</h4>
+          <p>AI가 질문을 분석하고 가장 적합한 방법으로 답변을 제공합니다.</p>
         </div>
       </div>
     </div>
+
+    <!-- AI 모델 섹션 -->
+    <div class="ai-models">
+      <h2>🤖 AI 모델 소개</h2>
+      <div class="model-grid">
+        <div class="model-card">
+          <h4>Gemini 2.5 Pro <span class="badge pro">고급</span></h4>
+          <p>복잡한 VBA 매크로, 고급 수식 조합, 창의적인 해결책에 최적화</p>
+        </div>
+        <div class="model-card">
+          <h4>Gemini 2.5 Flash <span class="badge">중급</span></h4>
+          <p>기본 수식 작성, 데이터 분석, 계획 수립에 빠르고 정확</p>
+        </div>
+        <div class="model-card">
+          <h4>Gemini 2.0 Flash <span class="badge">기초</span></h4>
+          <p>초보자 설명, 이미지 분석, 간단한 질문에 친절하고 빠름</p>
+        </div>
+        <div class="model-card">
+          <h4>OpenAI GPT-4o <span class="badge">보조</span></h4>
+          <p>문제 해결, 디버깅, 보조적 역할로 안정적인 지원</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 사용 팁 섹션 -->
+    <div class="tips-section">
+      <h2>💡 효과적인 사용 팁</h2>
+      <div class="tip-grid">
+        <div class="tip-item">
+          <h4>구체적으로 질문하기</h4>
+          <p>"VLOOKUP으로 이름으로 가격 찾기"처럼 구체적으로 말씀해주세요.</p>
+        </div>
+        <div class="tip-item">
+          <h4>파일 업로드 활용</h4>
+          <p>실제 데이터가 있는 파일을 업로드하면 더 정확한 답변을 받을 수 있습니다.</p>
+        </div>
+        <div class="tip-item">
+          <h4>단계별 질문</h4>
+          <p>복잡한 작업은 단계별로 나누어 질문하면 더 쉽게 이해할 수 있습니다.</p>
+        </div>
+        <div class="tip-item">
+          <h4>이미지 활용</h4>
+          <p>오류 화면이나 원하는 결과를 이미지로 보여주면 더 정확한 도움을 받을 수 있습니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 자주 묻는 질문 -->
+    <div class="usage-section">
+      <h2>❓ 자주 묻는 질문</h2>
+      <div class="step-grid">
+        <div class="step-card">
+          <h4>어떤 파일 형식을 지원하나요?</h4>
+          <p>Excel (.xlsx, .xls), CSV 파일을 지원합니다. 최대 10MB까지 업로드 가능합니다.</p>
+        </div>
+        <div class="step-card">
+          <h4>VBA 매크로도 작성해주나요?</h4>
+          <p>네! 복잡한 VBA 매크로부터 간단한 자동화 스크립트까지 모두 작성해드립니다.</p>
+        </div>
+        <div class="step-card">
+          <h4>이미지는 어떻게 첨부하나요?</h4>
+          <p>화면을 캡처한 후 <span class="keyboard">Ctrl</span> + <span class="keyboard">V</span>로 붙여넣기 하시면 됩니다.</p>
+        </div>
+        <div class="step-card">
+          <h4>답변이 부정확하면 어떻게 하나요?</h4>
+          <p>추가 질문이나 더 구체적인 설명을 해주시면 AI가 더 정확한 답변을 제공합니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 예시 질문들 -->
+    <div class="tips-section">
+      <h2>📝 질문 예시</h2>
+      <div class="tip-grid">
+        <div class="tip-item">
+          <h4>기본 수식</h4>
+          <p>"VLOOKUP으로 이름으로 가격 찾기", "SUMIF로 조건에 맞는 합계 구하기"</p>
+        </div>
+        <div class="tip-item">
+          <h4>데이터 정리</h4>
+          <p>"중복 제거하고 고유값만 남기기", "빈 셀을 0으로 채우기"</p>
+        </div>
+        <div class="tip-item">
+          <h4>분석 및 요약</h4>
+          <p>"피벗 테이블로 매출 요약하기", "월별 평균 계산하기"</p>
+        </div>
+        <div class="tip-item">
+          <h4>자동화</h4>
+          <p>"반복 작업을 VBA로 자동화하기", "조건부 서식 자동 적용하기"</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 푸터 -->
     <div class="footer">
-      © Excelly. 쉽고 친절한 엑셀 도우미. 도움말은 언제든 여기에서 업데이트됩니다.
+      <p><strong>Excelly AI Assistant v6.0</strong> - AI가 이해하는 가장 친절한 엑셀 도우미</p>
+      <p>Gemini 2.5 Pro + OpenAI GPT-4o 하이브리드 AI 엔진으로 더 정확하고 빠른 답변을 제공합니다.</p>
     </div>
   </div>
 </body>

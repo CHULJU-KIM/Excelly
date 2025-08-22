@@ -18,6 +18,8 @@ class DBSession(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     plan = Column(Text, nullable=True)
     temp_file_content = Column(LargeBinary, nullable=True)
+    filename = Column(String(255), nullable=True)  # Original filename
+    selected_sheet = Column(String(255), nullable=True)  # Selected sheet name
     metadata_json = Column(Text, nullable=True)  # JSON string for metadata
     
     # Relationship

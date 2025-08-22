@@ -917,6 +917,9 @@ h1::after {
                 };
                 pre.appendChild(copyButton);
             });
+            
+            // 파일 다운로드 링크 처리
+            handleFileDownloadLinks(message);
         }
         return wrapper;
     }
@@ -1017,17 +1020,22 @@ h1::after {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('session_id', currentSessionId);
+        
+        // 세션 ID가 없으면 빈 문자열로 전송 (서버에서 생성)
+        const sessionId = currentSessionId || '';
+        formData.append('session_id', sessionId);
+        console.log(`📤 파일 업로드 - 세션 ID: ${sessionId}`);
 
         try {
             const response = await fetch('/api/chat/analyze-sheets', { method: 'POST', body: formData });
             const data = await response.json();
             if (response.ok) {
                 loadingWrapper.remove();
-                // Align session_id if server created/normalized it
+                // 서버에서 생성된 세션 ID로 업데이트
                 if (data.session_id && data.session_id !== currentSessionId) {
                     currentSessionId = data.session_id;
                     sessionStorage.setItem('excellySessionId', currentSessionId);
+                    console.log(`🔄 세션 ID 업데이트: ${currentSessionId}`);
                 }
                 displaySheetSelection(data.sheets);
             } else {
@@ -1088,6 +1096,8 @@ h1::after {
         if (selectedSheet) formData.append('selected_sheet', selectedSheet);
         if (pastedImageFile) formData.append('image', pastedImageFile, 'pasted_image.png');
         
+        console.log(`📤 시트 선택 - 세션 ID: ${currentSessionId}, 선택된 시트: ${selectedSheet}`);
+        
         await sendFormData(formData);
     }
 
@@ -1105,6 +1115,11 @@ h1::after {
             const data = await response.json();
             if (response.ok) {
                 const aiWrapper = addMessage('ai', data.answer, true);
+                
+                // 모델 정보 표시
+                if (data.model_info) {
+                    addModelInfo(aiWrapper, data.model_info);
+                }
                 
                 // Handle different response types
                 if (data.response_type === 'clarification') {
@@ -1255,6 +1270,126 @@ h1::after {
 
             sendFormData(formData);
         });
+    }
+
+    function addModelInfo(parentWrapper, modelInfo) {
+        if (parentWrapper.querySelector('.model-info')) return;
+        
+        const modelInfoDiv = document.createElement('div');
+        modelInfoDiv.className = 'model-info';
+        modelInfoDiv.style.cssText = `
+            font-size: 11px;
+            color: #888;
+            margin-top: 8px;
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+            font-family: 'Courier New', monospace;
+        `;
+        
+        const modelType = modelInfo.model_type || '알 수 없는 모델';
+        const processingTime = modelInfo.processing_time ? `${modelInfo.processing_time.toFixed(2)}초` : 'N/A';
+        
+        modelInfoDiv.innerHTML = `
+            🤖 <strong>${modelType}</strong> | ⏱️ ${processingTime}
+        `;
+        
+        parentWrapper.appendChild(modelInfoDiv);
+    }
+    
+    // 파일 다운로드 링크 처리
+    function handleFileDownloadLinks(messageElement) {
+        // 파일 생성 요청 키워드가 포함된 메시지인지 확인
+        const messageText = messageElement.textContent.toLowerCase();
+        const fileGenerationKeywords = ['파일생성', '파일 생성', '파일로', '파일 만들어', '파일 만들기', '엑셀파일', '엑셀 파일', '결과파일', '결과 파일', '다운로드', '저장'];
+        
+        const isFileGenerationRequest = fileGenerationKeywords.some(keyword => messageText.includes(keyword));
+        
+        if (isFileGenerationRequest) {
+            // 파일 생성 요청이 감지되면 자동으로 파일 생성 및 다운로드 링크 생성
+            generateAndShowDownloadLink(messageElement);
+        } else {
+            // 기존 다운로드 링크 처리
+            const downloadLinks = messageElement.querySelectorAll('a[href*="analysis_result.xlsx"]');
+            downloadLinks.forEach(link => {
+                link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    generateAndShowDownloadLink(messageElement);
+                });
+            });
+        }
+    }
+    
+    // 파일 생성 및 다운로드 링크 생성 함수
+    async function generateAndShowDownloadLink(messageElement) {
+        try {
+            console.log('파일 생성 요청 시작...');
+            
+            const response = await fetch('/api/chat/generate-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    session_id: currentSessionId,
+                    ai_response: messageElement.textContent
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('파일 생성 성공:', data);
+                
+                // 다운로드 링크 생성
+                const downloadLink = document.createElement('a');
+                downloadLink.href = data.download_url;
+                downloadLink.download = `analysis_result_${data.file_id}.xlsx`;
+                downloadLink.textContent = `📊 결과 파일 다운로드 (${data.file_id})`;
+                downloadLink.style.cssText = `
+                    display: inline-block;
+                    margin-top: 10px;
+                    padding: 8px 16px;
+                    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+                `;
+                
+                downloadLink.addEventListener('mouseenter', () => {
+                    downloadLink.style.transform = 'translateY(-2px)';
+                    downloadLink.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.4)';
+                });
+                
+                downloadLink.addEventListener('mouseleave', () => {
+                    downloadLink.style.transform = 'translateY(0)';
+                    downloadLink.style.boxShadow = '0 2px 8px rgba(40, 167, 69, 0.3)';
+                });
+                
+                                 // 다운로드 링크 클릭 시 직접 다운로드 실행
+                 downloadLink.addEventListener('click', (e) => {
+                     e.preventDefault();
+                     console.log('다운로드 시작:', data.download_url);
+                     // 올바른 API 엔드포인트로 다운로드
+                     window.open(data.download_url, '_blank');
+                 });
+                
+                // 메시지 하단에 다운로드 링크 추가
+                messageElement.appendChild(downloadLink);
+                
+            } else {
+                const errorData = await response.json();
+                console.error('파일 생성 실패:', errorData);
+                alert(`파일 생성에 실패했습니다: ${errorData.detail || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('파일 다운로드 오류:', error);
+            alert('파일 다운로드 중 오류가 발생했습니다.');
+        }
     }
 </script>
 </body>

@@ -13,7 +13,7 @@ import io
 from app.core.config import settings
 from app.core.exceptions import AIServiceException
 from app.models.chat import QuestionClassification, UserIntent, AIResponse, ConversationState
-from prompts import PLANNING_PERSONA_PROMPT, CODING_PERSONA_PROMPT, DEBUGGING_PERSONA_PROMPT
+from prompts import PLANNING_PERSONA_PROMPT, CODING_PERSONA_PROMPT, DEBUGGING_PERSONA_PROMPT, PYTHON_PERSONA_PROMPT
 
 class AIService:
     """Service for managing AI model interactions with intelligent routing"""
@@ -99,6 +99,21 @@ class AIService:
                 "동적", "자동화", "최적화", "알고리즘", "정규식", "api", "sql"
             ]
             
+            # 파이썬 관련 키워드 감지 (파이썬 솔루션을 명시적으로 요청하는 경우)
+            python_keywords = [
+                "파이썬", "python", "pandas", "numpy", "matplotlib", "openpyxl", "xlrd",
+                "스크립트", "프로그램", "코딩", "개발", "라이브러리", "모듈", "import",
+                "데이터프레임", "dataframe", "시리즈", "series", "for문", "while문",
+                "함수정의", "def", "클래스", "class", "객체", "object"
+            ]
+            
+            # 복잡한 작업 키워드 감지 (고급 코딩/복잡한 로직)
+            complex_keywords = [
+                "복잡한", "고급", "정교한", "최적화", "성능", "대용량", "통합", "연동",
+                "자동화", "매크로", "vba", "스크립트", "프로그램", "함수조합", "배열수식",
+                "동적", "실시간", "다중", "병렬", "비동기", "이벤트", "콜백"
+            ]
+            
             # 대화 연결성 키워드 감지
             continuation_keywords = [
                 "계속", "계속해", "이어서", "그리고", "또한", "추가로", "더", "다음",
@@ -108,7 +123,9 @@ class AIService:
             # 사용자 수준 판단
             is_beginner = any(keyword in question_lower for keyword in beginner_keywords)
             is_advanced = any(keyword in question_lower for keyword in advanced_keywords)
+            is_complex = any(keyword in question_lower for keyword in complex_keywords)
             is_continuation = any(keyword in question for keyword in continuation_keywords)
+            is_python_request = any(keyword in question_lower for keyword in python_keywords)
             has_context = bool(context and context.strip())
             
             # 문제 유형 분석
@@ -126,31 +143,45 @@ class AIService:
                 if any(indicator in question_lower for indicator in indicators):
                     detected_problems.append(problem_type)
             
-            # 간단한 분류 로직 (복잡한 AI 분류 대신)
-            if is_continuation and has_context:
+            # 분류 로직 개선 (파이썬 요청 우선 처리)
+            if is_python_request:
+                classification = "python_coding"  # 파이썬 전용 분류
+                confidence = 0.95
+                recommended_model = "gemini_pro"
+            elif is_continuation and has_context:
                 classification = "continuation"
                 confidence = 0.9
+                recommended_model = "gemini_2_5_flash"
+            elif is_complex or (is_advanced and len(detected_problems) > 2):
+                classification = "advanced_coding"  # 새로운 분류
+                confidence = 0.9
+                recommended_model = "gemini_pro"
             elif is_beginner or not detected_problems:
-                classification = "beginner_help"  # 새로운 분류
+                classification = "beginner_help"
                 confidence = 0.8
+                recommended_model = "gemini_2_0_flash"
             elif "automation" in detected_problems or is_advanced:
                 classification = "coding"
                 confidence = 0.8
+                recommended_model = "gemini_2_5_flash"
             elif len(detected_problems) > 2:
                 classification = "hybrid"
                 confidence = 0.7
+                recommended_model = "gemini_2_5_flash"
             elif "lookup" in detected_problems or "calculation" in detected_problems:
                 classification = "analysis"
                 confidence = 0.7
+                recommended_model = "gemini_2_5_flash"
             else:
                 classification = "simple"
                 confidence = 0.6
+                recommended_model = "gemini_2_0_flash"
             
             return QuestionClassification(
                 classification=classification,
                 confidence=confidence,
-                reasoning=f"사용자 수준: {'초보' if is_beginner else '고급' if is_advanced else '일반'}, 감지된 문제: {detected_problems}",
-                recommended_model="gemini_2_0_flash" if is_beginner else "gemini_2_5_flash",
+                reasoning=f"사용자 수준: {'초보' if is_beginner else '고급' if is_advanced else '일반'}, 복잡도: {'복잡' if is_complex else '일반'}, 감지된 문제: {detected_problems}",
+                recommended_model=recommended_model,
                 estimated_tokens=500,
                 needs_clarification=False,
                 clarification_reasons=[]
@@ -207,8 +238,8 @@ class AIService:
 }}"""
             
             # Use Gemini 2.0 Flash for intent analysis (fastest and most cost-effective)
-            if self.gemini_flash_model:
-                response = await self._call_gemini_flash(prompt, temperature=0.0)
+            if self.gemini_2_0_flash_model:
+                response = await self._call_gemini_2_0_flash(prompt, temperature=0.0)
             else:
                 response = await self._call_openai(prompt, model="gpt-4o-mini", temperature=0.0)
             
@@ -251,7 +282,7 @@ class AIService:
 
     
     async def generate_simple_response(self, question: str, answer_style: Optional[str] = None) -> str:
-        """Generate simple response using Gemini 2.0 Flash (cost-effective)"""
+        """Generate simple response using Gemini 2.0 Flash (cost-effective for basic queries)"""
         try:
             prompt = f"""Excel 질문에 간결하게 답변하세요: {question}
 
@@ -263,17 +294,22 @@ class AIService:
             if answer_style == "concise":
                 prompt += "\n\n[스타일] 핵심만 3줄 이내"
             
-            # Use Gemini 2.0 Flash for simple responses (cost-effective)
+            # Use Gemini 2.0 Flash for basic queries (fastest and most cost-effective)
             if self.gemini_2_0_flash_model:
+                print("🤖 기본 질의 처리: Gemini 2.0 Flash 사용")
                 return await self._call_gemini_2_0_flash(prompt, temperature=0.3)
+            elif self.gemini_2_5_flash_model:
+                print("🤖 기본 질의 처리: Gemini 2.5 Flash 폴백")
+                return await self._call_gemini_2_5_flash(prompt, temperature=0.3)
             else:
+                print("🤖 기본 질의 처리: OpenAI 폴백")
                 return await self._call_openai(prompt, model="gpt-4o-mini", temperature=0.3)
             
         except Exception as e:
             raise AIServiceException(f"간단한 답변 생성 실패: {str(e)}")
     
     async def generate_coding_response(self, question: str, context: str, file_summary: str, answer_style: Optional[str] = None) -> str:
-        """Generate coding response using Gemini 2.5 Pro (best for VBA and complex functions)"""
+        """Generate coding response using Gemini 2.5 Flash (optimized for basic formulas and coding)"""
         try:
             prompt = f"""Excel 코딩 작업을 해결해주세요.
 
@@ -290,14 +326,52 @@ class AIService:
             if answer_style == "concise":
                 prompt += "\n\n[스타일] 핵심만 5줄 이내"
             
-            # Use Gemini 2.5 Pro for coding (best performance)
-            if self.gemini_pro_model:
+            # Use Gemini 2.5 Flash for basic coding (fast and accurate)
+            if self.gemini_2_5_flash_model:
+                print("🔧 기본 수식/코딩 처리: Gemini 2.5 Flash 사용")
+                return await self._call_gemini_2_5_flash(prompt, temperature=0.3)
+            elif self.gemini_pro_model:
+                print("🔧 기본 수식/코딩 처리: Gemini 2.5 Pro 폴백")
                 return await self._call_gemini_pro(prompt, temperature=0.3)
             else:
+                print("🔧 기본 수식/코딩 처리: OpenAI 폴백")
                 return await self._call_openai(prompt, model=settings.OPENAI_MODEL, temperature=0.3)
             
         except Exception as e:
             raise AIServiceException(f"코딩 답변 생성 실패: {str(e)}")
+    
+    async def generate_advanced_coding_response(self, question: str, context: str, file_summary: str, answer_style: Optional[str] = None) -> str:
+        """Generate advanced coding response using Gemini 2.5 Pro (for complex VBA and advanced functions)"""
+        try:
+            prompt = f"""고급 Excel 코딩 작업을 해결해주세요.
+
+**질문**: {question}
+**파일 정보**: {file_summary}
+
+**출력 형식**:
+🎯 **고급 접근법** (복잡한 로직 설계)
+🔧 **정교한 코드** (최적화된 VBA/함수)
+📖 **상세한 가이드** (단계별 설명)
+⚠️ **고급 주의사항** (복잡한 시나리오 고려)
+🚀 **성능 최적화** (대용량 데이터 처리)
+💡 **확장성 고려** (재사용 가능한 구조)"""
+            
+            if answer_style == "concise":
+                prompt += "\n\n[스타일] 핵심만 5줄 이내"
+            
+            # Use Gemini 2.5 Pro for advanced coding (highest quality)
+            if self.gemini_pro_model:
+                print("🚀 고급/복잡한 작업 처리: Gemini 2.5 Pro 사용")
+                return await self._call_gemini_pro(prompt, temperature=0.3)
+            elif self.gemini_2_5_flash_model:
+                print("🚀 고급/복잡한 작업 처리: Gemini 2.5 Flash 폴백")
+                return await self._call_gemini_2_5_flash(prompt, temperature=0.3)
+            else:
+                print("🚀 고급/복잡한 작업 처리: OpenAI 폴백")
+                return await self._call_openai(prompt, model=settings.OPENAI_MODEL, temperature=0.3)
+            
+        except Exception as e:
+            raise AIServiceException(f"고급 코딩 답변 생성 실패: {str(e)}")
     
     async def generate_analysis_response(self, question: str, context: str, file_summary: str, answer_style: Optional[str] = None) -> str:
         """Generate analysis response using Gemini 2.5 Flash (optimized for data analysis)"""
@@ -400,6 +474,23 @@ class AIService:
             
         except Exception as e:
             raise AIServiceException(f"하이브리드 답변 생성 실패: {str(e)}")
+    
+    async def generate_python_response(self, question: str, context: str, file_summary: str, answer_style: Optional[str] = None) -> str:
+        """Generate Python-specific response using Python persona prompt"""
+        try:
+            style_guard = "\n\n[응답 스타일] 핵심만 간결히 5줄 이내로 요약" if (answer_style=="concise") else ""
+            prompt = f"{PYTHON_PERSONA_PROMPT}{style_guard}\n\n--- Conversation History ---\n{context}\n\n--- File Analysis ---\n{file_summary}\n\n--- Current Question ---\n{question}"
+            
+            # Use Gemini Pro for Python coding (highest capability)
+            if self.gemini_pro_model:
+                return await self._call_gemini_pro(prompt, temperature=0.3)
+            elif self.gemini_2_5_flash_model:
+                return await self._call_gemini_2_5_flash(prompt, temperature=0.3)
+            else:
+                return await self._call_openai(prompt, model=settings.OPENAI_MODEL, temperature=0.3)
+            
+        except Exception as e:
+            raise AIServiceException(f"파이썬 답변 생성 실패: {str(e)}")
     
     async def generate_continuation_response(self, question: str, context: str, file_summary: str, answer_style: Optional[str] = None) -> str:
         """Generate continuation response maintaining conversation context"""
@@ -584,82 +675,118 @@ class AIService:
     async def _call_gemini_pro(self, prompt: str, temperature: float = 0.7) -> str:
         """Make Gemini 2.5 Pro API call (highest difficulty)"""
         if not self.gemini_pro_model:
+            print("❌ Gemini 2.5 Pro 모델이 초기화되지 않음")
             raise AIServiceException("Gemini 2.5 Pro 모델이 초기화되지 않았습니다.")
         
         try:
+            print(f"🚀 Gemini 2.5 Pro API 호출 시작 (프롬프트 길이: {len(prompt)} 문자)")
             response = await asyncio.wait_for(
                 self.gemini_pro_model.generate_content_async(prompt),
                 timeout=settings.AI_REQUEST_TIMEOUT
             )
+            print(f"✅ Gemini 2.5 Pro 응답 성공 (응답 길이: {len(response.text)} 문자)")
             return response.text.strip()
         except asyncio.TimeoutError:
+            print("⏰ Gemini 2.5 Pro 응답 시간 초과")
             raise AIServiceException("Gemini 2.5 Pro 응답 시간 초과")
         except Exception as e:
+            print(f"❌ Gemini 2.5 Pro API 호출 실패: {str(e)}")
             raise AIServiceException(f"Gemini 2.5 Pro API 호출 실패: {str(e)}")
     
     async def _call_gemini_2_5_flash(self, prompt: str, temperature: float = 0.7) -> str:
         """Make Gemini 2.5 Flash API call (medium difficulty)"""
         if not self.gemini_2_5_flash_model:
+            print("❌ Gemini 2.5 Flash 모델이 초기화되지 않음")
             raise AIServiceException("Gemini 2.5 Flash 모델이 초기화되지 않았습니다.")
         
         try:
+            print(f"🚀 Gemini 2.5 Flash API 호출 시작 (프롬프트 길이: {len(prompt)} 문자)")
             response = await asyncio.wait_for(
                 self.gemini_2_5_flash_model.generate_content_async(prompt),
                 timeout=45  # Medium timeout
             )
+            print(f"✅ Gemini 2.5 Flash 응답 성공 (응답 길이: {len(response.text)} 문자)")
             return response.text.strip()
         except asyncio.TimeoutError:
+            print("⏰ Gemini 2.5 Flash 응답 시간 초과, 2.0 Flash로 폴백")
             # Fallback to 2.0 Flash
             try:
                 return await self._call_gemini_2_0_flash(prompt, temperature)
             except Exception as e2:
+                print(f"❌ Gemini 2.5 Flash 폴백 실패: {str(e2)}")
                 raise AIServiceException(f"Gemini 2.5 Flash 응답 시간 초과 및 폴백 실패: {str(e2)}")
         except Exception as e:
+            print(f"❌ Gemini 2.5 Flash API 호출 실패: {str(e)}, 2.0 Flash로 폴백")
             # Fallback to 2.0 Flash
             try:
                 return await self._call_gemini_2_0_flash(prompt, temperature)
             except Exception as e2:
+                print(f"❌ Gemini 2.5 Flash 폴백 실패: {str(e2)}")
                 raise AIServiceException(f"Gemini 2.5 Flash API 실패 및 폴백 실패: {str(e2)}")
     
     async def _call_gemini_2_0_flash(self, prompt: str, temperature: float = 0.7) -> str:
         """Make Gemini 2.0 Flash API call (general difficulty)"""
         if not self.gemini_2_0_flash_model:
+            print("❌ Gemini 2.0 Flash 모델이 초기화되지 않음")
             raise AIServiceException("Gemini 2.0 Flash 모델이 초기화되지 않았습니다.")
         
         try:
+            print(f"🚀 Gemini 2.0 Flash API 호출 시작 (프롬프트 길이: {len(prompt)} 문자)")
             response = await asyncio.wait_for(
                 self.gemini_2_0_flash_model.generate_content_async(prompt),
                 timeout=30  # Fast timeout
             )
+            print(f"✅ Gemini 2.0 Flash 응답 성공 (응답 길이: {len(response.text)} 문자)")
             return response.text.strip()
         except asyncio.TimeoutError:
+            print("⏰ Gemini 2.0 Flash 응답 시간 초과, OpenAI로 폴백")
             # Fallback to OpenAI
             try:
                 return await self._call_openai(prompt, model="gpt-4o-mini", temperature=temperature)
             except Exception as e2:
+                print(f"❌ Gemini 2.0 Flash OpenAI 폴백 실패: {str(e2)}")
                 raise AIServiceException(f"Gemini 2.0 Flash 응답 시간 초과 및 OpenAI 폴백 실패: {str(e2)}")
         except Exception as e:
+            print(f"❌ Gemini 2.0 Flash API 호출 실패: {str(e)}, OpenAI로 폴백")
             # Fallback to OpenAI
             try:
                 return await self._call_openai(prompt, model="gpt-4o-mini", temperature=temperature)
             except Exception as e2:
+                print(f"❌ Gemini 2.0 Flash OpenAI 폴백 실패: {str(e2)}")
                 raise AIServiceException(f"Gemini 2.0 Flash API 실패 및 OpenAI 폴백 실패: {str(e2)}")
     
     async def _analyze_image_with_gemini(self, image_data: bytes) -> str:
-        """Analyze Excel image using optimized Gemini models with enhanced prompts"""
-        # Use Gemini 2.0 Flash for image analysis (fastest and most cost-effective)
-        model_to_use = self.gemini_2_0_flash_model or self.gemini_2_5_flash_model or self.gemini_pro_model
+        """Analyze Excel image using optimized Gemini Flash models with enhanced prompts"""
+        # 우선순위: Gemini 2.0 Flash > Gemini 2.5 Flash > Gemini Pro
+        # Flash 모델이 이미지 분석에 최적화되어 있음
+        model_to_use = None
+        
+        # 1순위: Gemini 2.0 Flash (가장 빠르고 비용 효율적 - 기초 이미지 처리)
+        if self.gemini_2_0_flash_model:
+            model_to_use = self.gemini_2_0_flash_model
+            print("🖼️ 이미지 분석: Gemini 2.0 Flash 사용 (기초 이미지 처리)")
+        # 2순위: Gemini 2.5 Flash (더 정확한 분석)
+        elif self.gemini_2_5_flash_model:
+            model_to_use = self.gemini_2_5_flash_model
+            print("🖼️ 이미지 분석: Gemini 2.5 Flash 사용")
+        # 3순위: Gemini Pro (최고 품질, 하지만 느림)
+        elif self.gemini_pro_model:
+            model_to_use = self.gemini_pro_model
+            print("🖼️ 이미지 분석: Gemini Pro 사용")
         
         if not model_to_use:
             return "[이미지 분석 기능을 사용할 수 없습니다. Gemini API 키가 필요합니다.]"
         
         try:
             image = Image.open(io.BytesIO(image_data))
+            print(f"🖼️ 이미지 크기: {image.width}x{image.height}, 형식: {image.format}")
             
-            # Optimize image for better analysis
+            # 이미지 최적화 (Flash 모델에 최적화)
             if image.width > 1920 or image.height > 1080:
                 image.thumbnail((1920, 1080), Image.Resampling.LANCZOS)
+                print(f"🖼️ 이미지 크기 조정: {image.width}x{image.height}")
             
+            # Flash 모델에 최적화된 프롬프트
             prompt = """Excel 화면 이미지를 정확하게 분석해주세요:
 
 **분석 요청사항**:
@@ -677,16 +804,23 @@ class AIService:
 
 특히 VLOOKUP, INDEX/MATCH, 조건부 서식, 데이터 검증 관련 문제를 중점적으로 분석해주세요."""
             
+            # Flash 모델에 최적화된 타임아웃 설정
+            timeout = 30 if model_to_use == self.gemini_2_0_flash_model else 45
+            
             response = await asyncio.wait_for(
                 model_to_use.generate_content_async([prompt, image]),
-                timeout=45  # 더 상세한 분석을 위해 시간 연장
+                timeout=timeout
             )
             
-            return response.text.strip()
+            result = response.text.strip()
+            print(f"🖼️ 이미지 분석 완료: {len(result)} 문자")
+            return result
             
         except asyncio.TimeoutError:
+            print("⏰ 이미지 분석 시간 초과")
             return "[이미지 분석 시간 초과: 이미지가 너무 복잡하거나 크기가 큽니다.]"
         except Exception as e:
+            print(f"❌ 이미지 분석 실패: {e}")
             return f"[이미지 분석 실패: {str(e)}. 이미지 형식을 확인해주세요.]"
     
     async def process_chat_request(
@@ -699,20 +833,19 @@ class AIService:
         conversation_context: Optional[Any] = None,
         answer_style: Optional[str] = None
     ) -> AIResponse:
-        """Process complete chat request with intelligent model routing and conversation management"""
+        """Process complete chat request with intelligent model routing"""
         start_time = time.time()
         
         try:
             if is_feedback:
                 # Handle feedback with debugging persona
                 answer = await self.generate_debugging_response(context, question, image_data)
-                model_used = settings.OPENAI_MODEL
+                model_used = "OpenAI GPT-4o"
                 response_type = "normal"
                 next_action = None
                 conversation_state = None
             else:
                 # Special flow: if a sheet was selected and we have file summary, provide detailed analysis
-                # ONLY if question is empty, starts with [시트선택], or is very short (like "1", "2", etc.)
                 if (file_summary and file_summary.strip()) and (
                     (not question) or 
                     question.strip().startswith("[시트선택]") or
@@ -747,7 +880,7 @@ class AIService:
                     response_type = "clarification"
                     next_action = "wait_for_clarification"
                     conversation_state = ConversationState.CLARIFYING
-                    # Return immediately to avoid being overwritten by later branches
+                    
                     processing_time = time.time() - start_time
                     return AIResponse(
                         answer=answer,
@@ -758,32 +891,7 @@ class AIService:
                         next_action=next_action,
                         conversation_state=conversation_state
                     )
-                # Check if user provided a specific task request (contains function names, specific operations)
-                elif file_summary and file_summary.strip() and self._is_specific_task_request(question):
-                    # User provided a specific task - process directly
-                    answer = await self._generate_solution_with_context(
-                        question,  # Use the question as the task
-                        question,  # Use the question as understanding
-                        context,
-                        file_summary
-                    )
-                    model_used = settings.OPENAI_MODEL
-                    response_type = "solution"
-                    next_action = "complete"
-                    conversation_state = ConversationState.COMPLETED
-                # Check if user mentioned VBA or specific complex operations
-                elif file_summary and file_summary.strip() and self._is_vba_or_complex_request(question):
-                    # User requested VBA or complex operations - process directly
-                    answer = await self._generate_solution_with_context(
-                        question,  # Use the question as the task
-                        question,  # Use the question as understanding
-                        context,
-                        file_summary
-                    )
-                    model_used = settings.OPENAI_MODEL
-                    response_type = "solution"
-                    next_action = "complete"
-                    conversation_state = ConversationState.COMPLETED
+                
                 # Check if user selected a task option (1-5)
                 elif file_summary and file_summary.strip() and question.strip() in ["1", "2", "3", "4", "5"]:
                     # User selected a task option
@@ -794,132 +902,125 @@ class AIService:
                         "4": "시각화",
                         "5": "자동화"
                     }
-                    selected_task = task_map.get(question.strip(), "일반 작업")
+                    selected_task = task_map[question.strip()]
                     
-                    answer = f"""✅ **{selected_task}를 선택하셨습니다!**
+                    answer = f"""🎯 **{selected_task} 작업을 선택하셨습니다!**
 
-현재 파일 정보:
-{file_summary}
-
-구체적으로 어떤 작업을 원하시나요?
-
-**{selected_task} 예시:**
 {self._get_task_examples(selected_task)}
 
-원하시는 작업을 구체적으로 말씀해 주세요!
-예: "VLOOKUP으로 다른 시트와 연결해줘" 또는 "A열 중복 제거해줘"
+**구체적으로 어떤 작업을 원하시나요?**
+예시를 참고하여 자세히 말씀해 주세요.
+
+예: "VLOOKUP으로 다른 시트에서 데이터 가져오기" 또는 "중복 데이터 제거하고 정렬하기"
 """
                     model_used = "conversation"
-                    response_type = "task_selection"
+                    response_type = "clarification"
                     next_action = "wait_for_task_details"
                     conversation_state = ConversationState.CLARIFYING
-                # Standard question processing - check if this is a clarification response
-                elif conversation_context and conversation_context.state.value == "clarifying":
-                    # Simple clarification processing
-                    answer = await self._generate_solution_with_context(
-                        conversation_context.original_question,
-                        question,  # Use current question as understanding
-                        context,
-                        file_summary
+                    
+                    processing_time = time.time() - start_time
+                    return AIResponse(
+                        answer=answer,
+                        session_id="",
+                        model_used=model_used,
+                        processing_time=processing_time,
+                        response_type=response_type,
+                        next_action=next_action,
+                        conversation_state=conversation_state
                     )
-                    model_used = settings.OPENAI_MODEL
-                    response_type = "solution"
-                    next_action = "complete"
-                    conversation_state = ConversationState.COMPLETED
+                
+                # Process with AI based on question complexity
                 else:
-                    # Standard processing for new questions
-                    
-                    # STRICT clarification logic - only clarify when absolutely necessary
-                    needs_clarification = False
-                    clarification_reasons = []
-                    
-                    # Case 1: Empty or very short question with file
-                    if (file_summary and file_summary.strip()) and (not question or len(question.strip()) < 2):
-                        needs_clarification = True
-                        clarification_reasons = ["goal"]
-                    # Case 2: Question is too vague (no specific function, operation, or target mentioned)
-                    elif not self._is_specific_enough(question):
-                        needs_clarification = True
-                        clarification_reasons = ["goal"]
-                    # Case 3: Question mentions multiple possible interpretations
-                    elif self._has_multiple_interpretations(question):
-                        needs_clarification = True
-                        clarification_reasons = ["goal"]
-                    
-                    # Create classification based on strict rules
-                    if needs_clarification:
-                        classification = QuestionClassification(
-                            classification="complex",
-                            confidence=0.9,
-                            reasoning="구체적인 요청이 부족하여 명확화 필요",
-                            recommended_model="openai",
-                            estimated_tokens=300,
-                            needs_clarification=True,
-                            clarification_reasons=clarification_reasons
+                    # Check for file generation request first
+                    if self._is_file_generation_request(question):
+                        print("📁 파일 생성 요청 감지됨")
+                        # Use Gemini 2.5 Pro for file generation (complex analysis)
+                        ai_response = await self._generate_solution_with_context(
+                            question, question, context, file_summary
                         )
-                    else:
-                        classification = QuestionClassification(
-                            classification="complex",
-                            confidence=0.8,
-                            reasoning="구체적인 요청으로 바로 처리 가능",
-                            recommended_model="openai",
-                            estimated_tokens=300,
-                            needs_clarification=False,
-                            clarification_reasons=[]
-                        )
-                    
-                    # Direct processing without complex clarification
-                    if False:  # Disable clarification for now
-                        pass
-                    else:
-                        # Direct answer or continue with existing context
-                        if conversation_context and conversation_context.state.value == "planning":
-                            # Generate solution with existing context
-                            answer = await self._generate_solution_with_context(
-                                conversation_context.original_question,
-                                conversation_context.current_understanding,
-                                context,
-                                file_summary
+                        answer = ai_response.answer
+                        model_used = ai_response.model_used
+                        response_type = "file_generation"
+                        next_action = "generate_file"
+                        conversation_state = ai_response.conversation_state
+                        model_info = ai_response.model_info
+                    elif image_data:
+                        # 이미지가 첨부된 Excel 질문 처리
+                        print("🖼️ 이미지가 첨부된 Excel 질문: 이미지 분석 + Excel 해결책 제공")
+                        
+                        # 이미지 분석 수행
+                        image_analysis = await self._analyze_image_with_gemini(image_data)
+                        
+                        # Excel 질문에 대한 해결책 생성
+                        enhanced_question = f"{question}\n\n[이미지 분석 결과]\n{image_analysis}"
+                        
+                        # Excel 해결책 생성 (이미지 분석 결과 포함)
+                        if self._is_complex_task(question):
+                            print("🚀 복잡한 Excel 작업: Gemini 2.5 Pro 사용")
+                            ai_response = await self._generate_solution_with_context(
+                                enhanced_question, enhanced_question, context, file_summary
                             )
-                            model_used = settings.OPENAI_MODEL
-                            response_type = "solution"
+                            answer = ai_response.answer
+                            model_used = ai_response.model_used
+                            response_type = "solution_with_image"
+                            next_action = ai_response.next_action
+                            conversation_state = ai_response.conversation_state
+                            model_info = ai_response.model_info
+                        else:
+                            print("⚡ 기본 Excel 작업: Gemini 2.5 Flash 사용")
+                            answer = await self.generate_coding_response(enhanced_question, context, file_summary, answer_style)
+                            model_used = "Gemini 2.5 Flash"
+                            response_type = "solution_with_image"
                             next_action = "complete"
                             conversation_state = ConversationState.COMPLETED
-                        else:
-                            # Standard processing with context awareness
-                            if conversation_context and conversation_context.state.value in ["planning", "executing"]:
-                                # Continue with existing conversation context
-                                answer = await self._generate_solution_with_context(
-                                    conversation_context.original_question,
-                                    conversation_context.current_understanding or question,
-                                    context,
-                                    file_summary
-                                )
-                                model_used = settings.OPENAI_MODEL
-                                response_type = "solution"
-                                next_action = "complete"
-                                conversation_state = ConversationState.COMPLETED
-                            else:
-                                # Standard processing for new questions
-                                answer = await self._process_standard_question(question, context, file_summary, classification, image_data, answer_style)
-                                model_used = classification.recommended_model or settings.OPENAI_MODEL
-                                response_type = "normal"
-                                next_action = None
-                                conversation_state = None
+                    elif self._is_complex_task(question):
+                        # Complex task - use Gemini 2.5 Pro
+                        print("🚀 복잡한 작업 감지: Gemini 2.5 Pro 사용")
+                        print(f"🔍 질문 내용: {question}")
+                        ai_response = await self._generate_solution_with_context(
+                            question, question, context, file_summary
+                        )
+                        answer = ai_response.answer
+                        model_used = ai_response.model_used
+                        response_type = ai_response.response_type
+                        next_action = ai_response.next_action
+                        conversation_state = ai_response.conversation_state
+                        model_info = ai_response.model_info
+                    else:
+                        # Basic task - use Gemini 2.5 Flash
+                        print("⚡ 기본 작업 감지: Gemini 2.5 Flash 사용")
+                        print(f"🔍 질문 내용: {question}")
+                        answer = await self.generate_coding_response(question, context, file_summary, answer_style)
+                        model_used = "Gemini 2.5 Flash"
+                        response_type = "solution"
+                        next_action = "complete"
+                        conversation_state = ConversationState.COMPLETED
             
+            # Calculate processing time
             processing_time = time.time() - start_time
+            
+            # Create model info if not provided
+            if 'model_info' not in locals():
+                model_info = {
+                    "model_name": model_used.lower().replace(" ", "_"),
+                    "model_type": model_used,
+                    "processing_time": processing_time,
+                    "classification": "basic" if "Flash" in model_used else "complex"
+                }
             
             return AIResponse(
                 answer=answer,
-                session_id="",  # Will be set by caller
+                session_id="",
                 model_used=model_used,
                 processing_time=processing_time,
                 response_type=response_type,
                 next_action=next_action,
-                conversation_state=conversation_state
+                conversation_state=conversation_state,
+                model_info=model_info
             )
             
         except Exception as e:
+            print(f"❌ process_chat_request 오류: {e}")
             raise AIServiceException(f"채팅 요청 처리 실패: {str(e)}")
     
     async def _process_standard_question(
@@ -932,6 +1033,27 @@ class AIService:
         answer_style: Optional[str] = None
     ) -> str:
         """Process standard question without clarification needs"""
+        # 이미지가 첨부된 경우 Flash 모델 우선 사용
+        if image_data:
+            print("🖼️ 이미지가 첨부된 질문: Flash 모델 우선 처리")
+            try:
+                # 이미지 분석 수행
+                image_analysis = await self._analyze_image_with_gemini(image_data)
+                
+                # 이미지 분석 결과를 포함한 질문 처리
+                enhanced_question = f"{question}\n\n[이미지 분석 결과]\n{image_analysis}"
+                
+                # Flash 모델로 처리 (이미지 분석에 최적화)
+                if self.gemini_2_0_flash_model:
+                    return await self._call_gemini_2_0_flash(enhanced_question, temperature=0.7)
+                elif self.gemini_2_5_flash_model:
+                    return await self._call_gemini_2_5_flash(enhanced_question, temperature=0.7)
+                else:
+                    # Flash 모델이 없으면 기존 로직 사용
+                    print("⚠️ Flash 모델 없음: 기존 로직 사용")
+            except Exception as e:
+                print(f"❌ 이미지 처리 실패: {e}, 기존 로직으로 폴백")
+        
         # If question is specific enough, generate solution directly
         if self._is_specific_enough(question):
             return await self._generate_solution_with_context(
@@ -943,23 +1065,35 @@ class AIService:
         
         # Otherwise, use classification-based processing with user-level awareness
         if classification.classification == "beginner_help":
+            print(f"🤖 분류: 초보자 도움 - {classification.recommended_model} 사용")
             return await self.generate_beginner_response(question, context, file_summary, answer_style)
         elif classification.classification == "coding":
+            print(f"🔧 분류: 기본 수식/코딩 - {classification.recommended_model} 사용")
             return await self.generate_coding_response(question, context, file_summary, answer_style)
+        elif classification.classification == "advanced_coding":
+            print(f"🚀 분류: 고급/복잡한 작업 - {classification.recommended_model} 사용")
+            return await self.generate_advanced_coding_response(question, context, file_summary, answer_style)
         elif classification.classification == "analysis":
+            print(f"📊 분류: 데이터 분석 - {classification.recommended_model} 사용")
             return await self.generate_analysis_response(question, context, file_summary, answer_style)
         elif classification.classification == "planning":
+            print(f"📋 분류: 계획 수립 - {classification.recommended_model} 사용")
             return await self.generate_planning_response(context, file_summary, answer_style)
         elif classification.classification == "simple":
+            print(f"💡 분류: 기본 질의 - {classification.recommended_model} 사용")
             return await self.generate_simple_response(question, answer_style)
         elif classification.classification == "hybrid":
+            print(f"🔄 분류: 하이브리드 처리 - {classification.recommended_model} 사용")
             return await self.generate_hybrid_response(question, context, file_summary, answer_style)
         elif classification.classification == "continuation":
+            print(f"🔗 분류: 대화 연결 - {classification.recommended_model} 사용")
             return await self.generate_continuation_response(question, context, file_summary, answer_style)
         elif classification.classification == "debugging":
+            print(f"�� 분류: 디버깅 - OpenAI 사용")
             return await self.generate_debugging_response(context, question, image_data)
         else:
             # Default to beginner help for unknown classifications
+            print(f"❓ 분류: 알 수 없음 - 기본 모델 사용")
             return await self.generate_beginner_response(question, context, file_summary, answer_style)
     
     async def _generate_solution_with_context(
@@ -968,64 +1102,170 @@ class AIService:
         understanding: str,
         context: str,
         file_summary: str
-    ) -> str:
+    ) -> AIResponse:
         """Generate solution based on gathered context and understanding"""
+        start_time = time.time()
+        
         try:
-            # Check if this is a new question or continuation
-            is_new_question = self._is_new_question(original_question, context)
-            
-            if is_new_question:
-                # This is a new question - treat it as a fresh request
-                prompt = f"""사용자의 새로운 질문: "{original_question}"
+            # Use Gemini 2.5 Pro for complex solutions
+            if self.gemini_pro_model:
+                print("🚀 복잡한 솔루션 생성: Gemini 2.5 Pro 사용")
+                
+                # 파일 생성 요청인지 확인
+                is_file_generation = self._is_file_generation_request(original_question)
+                
+                if is_file_generation:
+                    prompt = f"""제공된 Excel 시트 데이터를 기반으로 실제 분석을 수행하고 파일을 생성해주세요.
 
-이전 대화 맥락:
-{context}
+**질문**: {original_question}
+**시트 데이터**: {file_summary}
 
-파일 정보: {file_summary}
+**⚠️ 매우 중요한 지침**:
+1. **반드시 제공된 시트 데이터의 실제 내용만 사용하세요**
+2. **가상의 이름이나 데이터를 절대 사용하지 마세요**
+3. **원본 데이터의 정확한 값(학생 1, 학생 2 등)을 그대로 사용하세요**
+4. **실제 데이터가 없는 경우 "데이터 없음"으로 표시하세요**
 
-이것은 이전 질문과 다른 새로운 요청입니다. 이전 답변을 반복하지 말고, 새로운 질문에 대한 해결책을 제공해주세요.
+**출력 형식**:
+🎯 **데이터 분석** (제공된 데이터 기반 분석)
+🔧 **구체적 계산** (합계, 평균, 순위 등 실제 계산)
+📋 **실행 단계** (Excel에서 직접 실행 가능한 단계)
+💡 **결과 해석** (분석 결과의 의미)
+📊 **시각화 제안** (차트/피벗테이블 생성 방법)
 
-## 🎯 새로운 해결책
+**파일 생성**:
+- 분석이 완료되었으므로 다음 링크를 반드시 포함하세요:
 
-[새로운 문제 요약]
-- 사용자가 새로 요청한 문제
+[결과 파일 다운로드] analysis_result.xlsx
 
-[해결 방법]
-- 구체적인 해결 방법 (함수, 수식, 코드 등)
+**주의**: 일반적인 설명이 아닌, 제공된 데이터에 직접 적용 가능한 구체적인 분석을 제공하세요.
+"""
+                else:
+                    prompt = f"""제공된 Excel 시트 데이터를 기반으로 실제 분석을 수행해주세요.
 
-[사용 방법]
-- 단계별 사용 방법
+**질문**: {original_question}
+**시트 데이터**: {file_summary}
 
-[주의사항]
-- 주의해야 할 점들
+**⚠️ 매우 중요한 지침**:
+1. **반드시 제공된 시트 데이터의 실제 내용만 사용하세요**
+2. **가상의 이름이나 데이터를 절대 사용하지 마세요**
+3. **원본 데이터의 정확한 값(학생 1, 학생 2 등)을 그대로 사용하세요**
+4. **실제 데이터가 없는 경우 "데이터 없음"으로 표시하세요**
 
-[추가 팁]
-- 더 나은 방법이나 개선 방안"""
+**출력 형식**:
+🎯 **데이터 분석** (제공된 데이터 기반 분석)
+🔧 **구체적 계산** (합계, 평균, 순위 등 실제 계산)
+📋 **실행 단계** (Excel에서 직접 실행 가능한 단계)
+💡 **결과 해석** (분석 결과의 의미)
+📊 **시각화 제안** (차트/피벗테이블 생성 방법)
+
+**주의**: 일반적인 설명이 아닌, 제공된 데이터에 직접 적용 가능한 구체적인 분석을 제공하세요.
+"""
+                
+                try:
+                    response = await self._call_gemini_pro(prompt, temperature=0.3)
+                    print("✅ Gemini 2.5 Pro 솔루션 생성 성공")
+                    processing_time = time.time() - start_time
+                    return AIResponse(
+                        answer=response,
+                        session_id="",
+                        model_used="Gemini 2.5 Pro",
+                        processing_time=processing_time,
+                        response_type="solution",
+                        next_action="complete",
+                        conversation_state=ConversationState.COMPLETED,
+                        model_info={
+                            "model_name": "gemini-2.5-pro",
+                            "model_type": "Gemini 2.5 Pro (고급/복잡한 작업)",
+                            "processing_time": processing_time,
+                            "classification": "complex"
+                        }
+                    )
+                except Exception as e:
+                    print(f"❌ Gemini 2.5 Pro 솔루션 생성 실패: {e}")
+                    
+                    # 1차 폴백: Gemini 2.5 Flash 시도
+                    try:
+                        print("🔄 Gemini 2.5 Flash로 1차 폴백")
+                        fallback_response = await self._call_gemini_2_5_flash(prompt, temperature=0.3)
+                        processing_time = time.time() - start_time
+                        return AIResponse(
+                            answer=fallback_response,
+                            session_id="",
+                            model_used="Gemini 2.5 Flash",
+                            processing_time=processing_time,
+                            response_type="solution",
+                            next_action="complete",
+                            conversation_state=ConversationState.COMPLETED,
+                            model_info={
+                                "model_name": "gemini-2.5-flash",
+                                "model_type": "Gemini 2.5 Flash (1차 폴백)",
+                                "processing_time": processing_time,
+                                "classification": "fallback"
+                            }
+                        )
+                    except Exception as flash_error:
+                        print(f"❌ Gemini 2.5 Flash 폴백 실패: {flash_error}")
+                        
+                        # 2차 폴백: OpenAI
+                        try:
+                            print("🔄 OpenAI로 2차 폴백")
+                            fallback_response = await self._call_openai(prompt, model=settings.OPENAI_MODEL, temperature=0.3)
+                            processing_time = time.time() - start_time
+                            return AIResponse(
+                                answer=fallback_response,
+                                session_id="",
+                                model_used="OpenAI GPT-4o",
+                                processing_time=processing_time,
+                                response_type="solution",
+                                next_action="complete",
+                                conversation_state=ConversationState.COMPLETED,
+                                model_info={
+                                    "model_name": "gpt-4o-mini",
+                                    "model_type": "OpenAI GPT-4o (2차 폴백)",
+                                    "processing_time": processing_time,
+                                    "classification": "fallback"
+                                }
+                            )
+                        except Exception as openai_error:
+                            print(f"❌ OpenAI 폴백도 실패: {openai_error}")
+                            raise AIServiceException(f"모든 AI 모델 폴백 실패: {str(e)}")
             else:
-                # This is a continuation or clarification
-                prompt = f"""이전 대화를 이어서 진행하겠습니다.
+                print("🚀 복잡한 솔루션 생성: OpenAI 사용 (Gemini Pro 없음)")
+                prompt = f"""Excel 문제를 해결해주세요.
 
-원래 질문: "{original_question}"
-현재 상황: {understanding}
+**질문**: {original_question}
+**파일 정보**: {file_summary}
 
-이전 대화 내용:
-{context}
+**출력 형식**:
+🎯 **문제 분석** (문제점과 원인)
+🔧 **해결 방법** (단계별 접근)
+📋 **구체적 단계** (실행 가능한 단계)
+💡 **추가 팁** (주의사항과 최적화)
+📊 **결과 확인** (예상 결과)
 
-파일 정보: {file_summary}
-
-이전 대화를 고려하여 다음 중 하나로 응답해주세요:
-
-1. **이전 답변에 대한 추가 설명이나 보완**이 필요한 경우
-2. **새로운 질문이나 요청**이 있는 경우
-3. **이전 해결책의 실행 결과**에 대한 피드백이 있는 경우
-
-자연스럽게 대화를 이어가며 사용자의 요구에 맞는 답변을 제공해주세요."""
-
-            # Use Gemini 2.5 Pro for VBA and complex code generation
-            return await self._call_gemini_pro(prompt, temperature=0.3)
-            
+[결과 파일 다운로드] analysis_result.xlsx"""
+                response = await self._call_openai(prompt, model=settings.OPENAI_MODEL, temperature=0.3)
+                processing_time = time.time() - start_time
+                return AIResponse(
+                    answer=response,
+                    session_id="",
+                    model_used="OpenAI GPT-4o",
+                    processing_time=processing_time,
+                    response_type="solution",
+                    next_action="complete",
+                    conversation_state=ConversationState.COMPLETED,
+                    model_info={
+                        "model_name": "gpt-4o-mini",
+                        "model_type": "OpenAI GPT-4o (보조/롤백)",
+                        "processing_time": processing_time,
+                        "classification": "fallback"
+                    }
+                )
+                
         except Exception as e:
-            raise AIServiceException(f"해결책 생성 실패: {str(e)}")
+            print(f"❌ 솔루션 생성 중 예외 발생: {e}")
+            raise AIServiceException(f"솔루션 생성 실패: {str(e)}")
     
     def _is_new_question(self, question: str, context: str) -> bool:
         """Check if the question is new or a continuation"""
@@ -1141,41 +1381,57 @@ class AIService:
         """Check if the question is about VBA or complex operations"""
         question_lower = question.lower()
         
-        # VBA related keywords
+        # VBA related keywords (complex programming)
         vba_keywords = [
-            "vba", "매크로", "코드", "스크립트", "자동화", "프로그램", "함수", "서브루틴",
-            "for", "while", "if", "then", "else", "end if", "loop", "next", "dim", "set"
+            "vba", "매크로", "코드", "스크립트", "프로그램", "서브루틴", "함수",
+            "for", "while", "if", "then", "else", "end if", "loop", "next", "dim", "set",
+            "sub", "function", "call", "exit", "goto", "on error", "resume"
         ]
         
-        # Complex operation keywords
+        # Complex operation keywords (advanced features)
         complex_keywords = [
             "통합", "합치기", "병합", "연결", "모든", "전체", "시트", "파일", "년도", "월별",
             "매출", "자료", "데이터", "관리", "정리", "분석", "요약", "집계", "통계",
-            "1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월",
-            "각 이름", "각 시트", "여러 시트", "여러 파일", "년도별", "월별"
+            "복잡한", "고급", "고급 기능", "조합", "여러", "다중", "연쇄", "연결된",
+            "조건부 서식", "데이터 유효성", "피벗 테이블", "차트", "그래프", "시각화",
+            "데이터 모델", "관계", "외부 데이터", "쿼리", "sql", "데이터베이스",
+            "워크시트 함수", "사용자 정의 함수", "udf", "add-in", "플러그인"
         ]
         
         # Check for VBA keywords
-        has_vba = any(keyword in question_lower for keyword in vba_keywords)
+        has_vba_keywords = any(keyword in question_lower for keyword in vba_keywords)
         
-        # Check for complex operation keywords (need multiple matches for complex operations)
-        complex_matches = sum(1 for keyword in complex_keywords if keyword in question_lower)
-        has_complex_operation = complex_matches >= 3  # At least 3 complex keywords
+        # Check for complex operation keywords
+        has_complex_keywords = any(keyword in question_lower for keyword in complex_keywords)
         
-        # Check for specific patterns that indicate complex operations
-        has_specific_patterns = any([
-            "시트에 저장" in question_lower,
-            "파일로 관리" in question_lower,
-            "한 시트에 통합" in question_lower,
-            "모든 매출자료" in question_lower,
-            "년도별로" in question_lower
-        ])
-        
-        return has_vba or has_complex_operation or has_specific_patterns
+        # Check for multiple operations or complex combinations
+        operation_count = 0
+        if "그리고" in question_lower or "또한" in question_lower or "추가로" in question_lower:
+            operation_count += 1
+        if "여러" in question_lower or "다중" in question_lower or "복합" in question_lower:
+            operation_count += 1
+        if "시트" in question_lower and ("여러" in question_lower or "모든" in question_lower):
+            operation_count += 1
+            
+        # Consider it complex if it has VBA keywords, complex keywords, or multiple operations
+        return has_vba_keywords or has_complex_keywords or operation_count >= 2
     
     def _is_specific_enough(self, question: str) -> bool:
         """Check if the question is specific enough to process directly"""
         question_lower = question.lower()
+        
+        # Check for file generation requests (should be processed directly)
+        file_generation_keywords = [
+            "파일생성", "파일 생성", "파일로", "파일 만들어", "파일 만들기",
+            "엑셀파일", "엑셀 파일", "결과파일", "결과 파일", "다운로드", "저장",
+            "보고서", "분석결과", "분석 결과", "통계", "차트", "그래프", "시각화",
+            "피벗테이블", "피벗 테이블", "조건부서식", "조건부 서식", "데이터분석",
+            "데이터 분석", "인사이트", "최적화", "품질진단", "품질 진단"
+        ]
+        
+        # If it's a file generation request, consider it specific enough
+        if any(keyword in question_lower for keyword in file_generation_keywords):
+            return True
         
         # Check for specific functions, operations, or targets
         specific_indicators = [
@@ -1284,7 +1540,7 @@ class AIService:
         return examples.get(task_type, "• 구체적인 작업을 말씀해 주세요")
     
     def get_service_status(self) -> Dict[str, Any]:
-        """Get comprehensive AI service status with hybrid model information"""
+        """Get comprehensive AI service status"""
         return {
             "openai_available": self.openai_client is not None,
             "gemini_pro_available": self.gemini_pro_model is not None,
@@ -1307,17 +1563,193 @@ class AIService:
             },
             "specialized_roles": {
                 "beginner_help": "Gemini 2.0 Flash (초보자 친화적 설명)",
-                "coding": "Gemini 2.5 Pro (VBA, 복잡한 함수조합)",
+                "coding": "Gemini 2.5 Flash (기본 함수/수식)",
                 "analysis": "Gemini 2.5 Flash (빠른 데이터 분석)",
                 "planning": "Gemini 2.5 Flash (구조화된 계획 수립)",
                 "simple": "Gemini 2.0 Flash (비용 효율적)",
-                "hybrid": "2.5 Pro + OpenAI 조합 (최고 품질)",
-                "continuation": "Gemini 2.5 Flash (대화 연결성)",
-                "debugging": "OpenAI GPT-4o-mini (문제 해결)",
+                "complex": "Gemini 2.5 Pro (고급/복잡한 작업)",
                 "image_analysis": "Gemini 2.0 Flash (멀티모달)",
                 "auxiliary_support": "OpenAI (보조적 역할)"
             }
         }
+    
+    def _get_model_type(self, model_name: str) -> str:
+        """Get human-readable model type for display"""
+        if "gemini-2.5-pro" in model_name or "gemini_pro" in model_name:
+            return "Gemini 2.5 Pro (고급/복잡한 작업)"
+        elif "gemini-2.5-flash" in model_name or "gemini_2_5_flash" in model_name:
+            return "Gemini 2.5 Flash (기본 수식/코딩)"
+        elif "gemini-2.0-flash" in model_name or "gemini_2_0_flash" in model_name:
+            return "Gemini 2.0 Flash (기초 질의/이미지)"
+        elif "gpt-4o" in model_name or "openai" in model_name:
+            return "OpenAI GPT-4o (보조/롤백)"
+        elif "conversation" in model_name:
+            return "대화 관리"
+        else:
+            return "기타 모델"
+    
+    def _is_basic_task(self, question: str) -> bool:
+        """Check if the question is a basic task that can be handled by Flash models"""
+        question_lower = question.lower()
+        
+        # Basic function keywords (simple, single functions)
+        basic_function_keywords = [
+            "vlookup", "hlookup", "sumif", "countif", "averageif", "if", "and", "or",
+            "left", "right", "mid", "len", "trim", "concatenate", "substitute", "replace",
+            "isnumber", "istext", "isna", "isblank", "iserror", "숫자인지", "문자인지",
+            "sum", "average", "count", "max", "min", "round", "date", "today", "now"
+        ]
+        
+        # Basic operation keywords (simple operations)
+        basic_operation_keywords = [
+            "찾아서", "가져와", "합계", "평균", "개수", "정렬", "필터", "중복 제거",
+            "확인하고", "알고 싶어", "원해", "필요해", "만들어줘", "알려줘", "계산",
+            "더하기", "빼기", "곱하기", "나누기", "반올림", "올림", "내림"
+        ]
+        
+        # Simple macro keywords (basic automation)
+        simple_macro_keywords = [
+            "자동", "반복", "일괄", "복사", "붙여넣기", "서식 복사", "자동 채우기",
+            "간단한", "기본", "단순", "자동화"
+        ]
+        
+        # Complex keywords that require Pro model
+        complex_keywords = [
+            "vba", "매크로", "코드", "스크립트", "프로그램", "서브루틴", "함수",
+            "통합", "합치기", "병합", "연결", "모든", "전체", "시트", "파일", "년도", "월별",
+            "매출", "자료", "데이터", "관리", "정리", "분석", "요약", "집계", "통계",
+            "복잡한", "고급", "고급 기능", "조합", "여러", "다중", "연쇄", "연결된",
+            "조건부 서식", "데이터 유효성", "피벗 테이블", "차트", "그래프", "시각화",
+            "for", "while", "loop", "next", "dim", "set", "then", "else", "end if"
+        ]
+        
+        # Check for complex keywords first
+        has_complex_keywords = any(keyword in question_lower for keyword in complex_keywords)
+        if has_complex_keywords:
+            return False
+        
+        # Check for basic functions or operations
+        has_basic_function = any(func in question_lower for func in basic_function_keywords)
+        has_basic_operation = any(op in question_lower for op in basic_operation_keywords)
+        has_simple_macro = any(macro in question_lower for macro in simple_macro_keywords)
+        
+        # Check for column references (A열, B열, etc.)
+        import re
+        column_pattern = r'[a-z]열'
+        has_column_ref = bool(re.search(column_pattern, question_lower))
+        
+        # Consider it basic if it has:
+        # 1. Basic function names, OR
+        # 2. Basic operations with column references, OR
+        # 3. Simple operations without complex keywords, OR
+        # 4. Simple macro requests
+        return (has_basic_function or 
+                (has_column_ref and has_basic_operation) or 
+                has_basic_operation or 
+                has_simple_macro)
+    
+    def _is_specific_task_request(self, question: str) -> bool:
+        """Check if the question contains a specific task request"""
+        question_lower = question.lower()
+        
+        # Check for specific function names
+        function_keywords = [
+            "vlookup", "xlookup", "hlookup", "index", "match", "sumif", "countif", 
+            "averageif", "if", "and", "or", "concatenate", "left", "right", "mid",
+            "len", "trim", "substitute", "replace", "find", "search", "date", "today",
+            "now", "year", "month", "day", "weekday", "eomonth", "datedif",
+            "isnumber", "istext", "isna", "isblank", "iserror", "숫자인지", "문자인지", "확인"
+        ]
+        
+        # Check for specific operations
+        operation_keywords = [
+            "찾아서", "가져와", "연결", "합계", "평균", "개수", "정렬", "필터", 
+            "중복 제거", "정리", "분석", "요약", "그래프", "차트", "매크로", "자동화",
+            "조건부", "서식", "수식", "함수", "코드", "스크립트", "vba",
+            "확인하고", "확인하고 싶어", "알고 싶어", "원해", "필요해"
+        ]
+        
+        # Check for specific Excel terms
+        excel_keywords = [
+            "열", "행", "셀", "시트", "워크북", "범위", "피벗", "테이블", "데이터",
+            "값", "참조", "링크", "복사", "붙여넣기", "삽입", "삭제", "이동"
+        ]
+        
+        # Check for column references (A열, B열, etc.)
+        import re
+        column_pattern = r'[a-z]열'
+        has_column_ref = bool(re.search(column_pattern, question_lower))
+        
+        # Check if question contains specific function or operation
+        has_function = any(func in question_lower for func in function_keywords)
+        has_operation = any(op in question_lower for op in operation_keywords)
+        has_excel_term = any(term in question_lower for term in excel_keywords)
+        
+        # Consider it specific if it has:
+        # 1. Function names, OR
+        # 2. Column references with operations, OR
+        # 3. Detailed operations with Excel terms
+        return has_function or (has_column_ref and has_operation) or (has_operation and has_excel_term)
+    
+    def _is_file_generation_request(self, question: str) -> bool:
+        """Check if the question is a file generation request - 매우 엄격한 기준"""
+        question_lower = question.lower()
+        
+        # 매우 명시적인 파일 생성 요청 키워드만 감지
+        explicit_file_generation_keywords = [
+            "파일로 만들어줘", "파일 만들어줘", "파일로 만들어달라", "파일로 만들어달라고",
+            "파일로 만들어달라고요", "파일로 만들어달라구요", "파일로 만들어달라구",
+            "파일생성해줘", "파일 생성해줘", "파일생성해달라", "파일 생성해달라",
+            "다운로드해줘", "저장해줘", "파일로 저장해줘", "파일로 다운로드해줘",
+            "엑셀파일로 만들어줘", "엑셀 파일로 만들어줘", "결과파일로 만들어줘", "결과 파일로 만들어줘"
+        ]
+        
+        # 매우 명시적인 파일 생성 요청만 감지 (정확히 일치하는 경우만)
+        for keyword in explicit_file_generation_keywords:
+            if keyword in question_lower:
+                print(f"✅ 파일 생성 요청 감지: '{keyword}' 키워드 발견")
+                return True
+        
+        # 인코딩 문제로 깨진 "파일생성" 감지
+        if "íŒŒì" in question or "ìƒ" in question or "ì„±" in question:
+            print("✅ 파일 생성 요청 감지: 인코딩 문제로 깨진 키워드 발견")
+            return True
+            
+        print(f"❌ 파일 생성 요청 아님: '{question}'")
+        return False
+    
+    def _is_complex_task(self, question: str) -> bool:
+        """Check if the question is a complex task requiring Gemini 2.5 Pro"""
+        question_lower = question.lower()
+        
+        # Complex keywords that require Pro model
+        complex_keywords = [
+            "vba", "매크로", "코드", "스크립트", "프로그램", "서브루틴", "함수",
+            "통합", "합치기", "병합", "연결", "모든", "전체", "시트", "년도", "월별",
+            "복잡한", "고급", "고급 기능", "조합", "여러", "다중", "연쇄", "연결된",
+            "조건부 서식", "데이터 유효성", "피벗 테이블", "차트", "그래프", "시각화",
+            "데이터 모델", "관계", "외부 데이터", "쿼리", "sql", "데이터베이스",
+            "for", "while", "loop", "next", "dim", "set", "then", "else", "end if",
+            # 고급 Excel 기능 키워드 추가
+            "통계분석", "통계 분석", "데이터분석", "데이터 분석", "인사이트", "최적화",
+            "품질진단", "품질 진단", "이상치", "이상 치", "결측치", "결측 치",
+            "상관관계", "상관 관계", "분포", "왜도", "첨도", "기술통계", "기술 통계",
+            "데이터시각화", "데이터 시각화", "대시보드", "리포트", "보고서"
+        ]
+        
+        # Check for complex keywords
+        has_complex_keywords = any(keyword in question_lower for keyword in complex_keywords)
+        
+        # Check for multiple operations
+        operation_count = 0
+        if "그리고" in question_lower or "또한" in question_lower or "추가로" in question_lower:
+            operation_count += 1
+        if "여러" in question_lower or "다중" in question_lower or "복합" in question_lower:
+            operation_count += 1
+        if "시트" in question_lower and ("여러" in question_lower or "모든" in question_lower):
+            operation_count += 1
+            
+        return has_complex_keywords or operation_count >= 2
 
 # Global AI service instance
 ai_service = AIService()
